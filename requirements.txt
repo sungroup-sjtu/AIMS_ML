@@ -1,0 +1,5 @@
+openbabel
+rdkit
+scikit-learn
+pytorch
+salib

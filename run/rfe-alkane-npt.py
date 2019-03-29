@@ -4,7 +4,7 @@ import sys
 import argparse
 import numpy as np
 
-from MDLearn import example, preprocessing, metrics
+from mdlearn import example, preprocessing, metrics
 
 from sklearn.svm import SVR, LinearSVR
 from sklearn.neural_network import MLPRegressor
@@ -20,7 +20,7 @@ parser.add_argument('--partition', type=str, help='Partition cache file')
 
 opt = parser.parse_args()
 
-datax, datay = example.load_altp(opt.obj)
+datax, datay = example.load_altp(target=opt.obj)
 selector = preprocessing.Selector(datax, datay)
 selector.load(opt.partition)
 trainx, trainy = selector.training_set()
