@@ -1,31 +1,29 @@
 #!/usr/bin/env python3
 
-import sys 
+import sys
 import argparse
-import numpy as np 
+import numpy as np
 
 sys.path.append('..')
 from mdlearn import fitting, preprocessing, encoding
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dir', default='out', help='Model directory')
-parser.add_argument('--input', default='CC,207,100', help='Molecule,T,P')
-parser.add_argument('--encoder', help='Using GPU')
+parser.add_argument('-d', '--dir', default='out', help='Model directory')
+parser.add_argument('-i', '--input', default='CC,207,100', help='Molecule,T,P')
+parser.add_argument('-f', '--fp', help='Using GPU')
 parser.add_argument('--batch', default='', help='Batch input file')
-parser.add_argument('--gpu', default=1, type=int, help='Using GPU')
+parser.add_argument('--gpu', default=0, type=int, help='Using GPU')
 
 opt = parser.parse_args()
 
-fitting.backend = 'tch'
-
-nn = fitting.PerceptronFitter(None, None, [])
-nn.regressor.is_gpu = opt.gpu == 1
-nn.regressor.load(opt.dir + '/model.pt')
+model = fitting.TorchMLPRegressor(None, None, [])
+model.is_gpu = opt.gpu == 1
+model.load(opt.dir + '/model.pt')
 
 scaler = preprocessing.Scaler()
 scaler.load(opt.dir + '/scale.txt')
 
-encoders=opt.encoder.split(',')
+encoders = opt.fp.split(',')
 encoder = encoding.FPEncoder(encoders, fp_name=opt.dir + '/fp_predict')
 
 smiles = []
@@ -49,7 +47,7 @@ else:
 encoder.load_data(np.array(smiles), np.array(t), np.array(p))
 datax = encoder.encode()
 datax = scaler.transform(datax)
-datay = nn.predict_batch(datax)
+datay = model.predict_batch(datax)
 
 print('SMILES\tT\tP\tResult')
 for s_, t_, p_, y_ in zip(smiles, t, p, datay):

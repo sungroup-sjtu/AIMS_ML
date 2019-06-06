@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import argparse
 import logging
@@ -11,7 +12,7 @@ import numpy as np
 import torch
 
 sys.path.append('..')
-from mdlearn import example, fitting, visualize, metrics, preprocessing, validation
+from mdlearn import fitting, visualize, metrics, preprocessing, validation, dataloader
 
 
 def main():
@@ -21,14 +22,14 @@ def main():
     parser.add_argument('-o', '--output', default='out', type=str, help='Output directory')
     parser.add_argument('-t', '--target', default='raw_density', type=str, help='Fitting target')
     parser.add_argument('-p', '--part', default='', type=str, help='Partition cache file')
-    parser.add_argument('-l', '--layer', default='16,8,4', type=str, help='Size of hidden layers')
+    parser.add_argument('-l', '--layer', default='16,16', type=str, help='Size of hidden layers')
     parser.add_argument('--visual', default=1, type=int, help='Visualzation data')
     parser.add_argument('--gpu', default=1, type=int, help='Using gpu')
     parser.add_argument('--epoch', default=200, type=int, help='Number of epochs')
     parser.add_argument('--step', default=500, type=int, help='Number of steps trained for each batch')
-    parser.add_argument('--batch', default=65536, type=int, help='Batch size')
+    parser.add_argument('--batch', default=int(1e9), type=int, help='Batch size')
     parser.add_argument('--lr', default=0.005, type=float, help='Initial learning rate')
-    parser.add_argument('--l2', default=0, type=float, help='L2 Penalty')
+    parser.add_argument('--l2', default=0.000, type=float, help='L2 Penalty')
     parser.add_argument('--check', default=10, type=int,
                         help='Number of epoch that do convergence check. Set 0 to disable.')
     parser.add_argument('--minstop', default=0.2, type=float, help='Minimum fraction of step to stop')
@@ -42,7 +43,10 @@ def main():
     else:
         layers = []
 
-    logger = logging.getLogger('altp')
+    if not os.path.exists(opt.output):
+        os.mkdir(opt.output)
+
+    logger = logging.getLogger('train')
     logger.setLevel(logging.INFO)
     flog = logging.FileHandler(opt.output + '/log.txt', mode='w')
     flog.setLevel(logging.INFO)
@@ -63,8 +67,7 @@ def main():
     logger.info('Remove Feature: %s' % featrm)
 
     logger.info('Reading data...')
-    datax, datay, data_names = example.load_altp(filename=opt.input, fps=opt.fp.split(','), target=opt.target,
-                                                 load_names=True, featrm=featrm)
+    datax, datay, data_names = dataloader.load(filename=opt.input, target=opt.target, fps=opt.fp.split(','), featrm=featrm)
 
     logger.info('Selecting data...')
     selector = preprocessing.Selector(datax, datay, data_names)
@@ -72,13 +75,13 @@ def main():
         logger.info('Loading partition file %s' % opt.part)
         selector.load(opt.part)
     else:
-        logger.warning("Partition file not found. Using auto-parition instead.")
+        logger.warning("Partition file not found. Using auto-partition instead.")
         selector.partition(0.8, 0.1)
         selector.save(opt.output + '/part.txt')
     trainx, trainy, trainname = selector.training_set()
-    testx, testy, testname = selector.validation_set()
+    validx, validy, validname = selector.validation_set()
 
-    logger.info('Training size = %d, Testing size = %d' % (len(trainx), len(testx)))
+    logger.info('Training size = %d, Validation size = %d' % (len(trainx), len(validx)))
     logger.info('X input example: (size=%d) %s' % (len(datax[0]), ','.join(map(str, datax[0]))))
     logger.info('Y input example: (size=%d) %s' % (len(datay[0]), ','.join(map(str, datay[0]))))
     logger.info('Normalizing...')
@@ -86,31 +89,29 @@ def main():
     scaler.fit(trainx)
     scaler.save(opt.output + '/scale.txt')
     normed_trainx = scaler.transform(trainx)
-    normed_testx = scaler.transform(testx)
+    normed_validx = scaler.transform(validx)
 
     logger.info('Building network...')
-    fitting.backend = 'tch'
-
     logger.info('Hidden layers = %r' % layers)
     logger.info('Initial learning rate = %f' % opt.lr)
     logger.info('L2 penalty = %f' % opt.l2)
     logger.info('Total %d epochs' % opt.epoch)
-    logger.info('Batch = (%d values x %d step)' % (opt.batch, opt.step))
+    logger.info('Batch = (%d values x %d steps)' % (opt.batch, opt.step))
     if opt.gpu:
         logger.info('Using GPU acceleration')
 
-    nn = fitting.PerceptronFitter(len(trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, batch_step=opt.step,
-                                  args_opt={'optimizer'   : torch.optim.Adam,
-                                            'lr'          : opt.lr,
-                                            'weight_decay': opt.l2
-                                            }
-                                  )
+    model = fitting.TorchMLPRegressor(len(trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, batch_step=opt.step,
+                                      is_gpu=opt.gpu != 0,
+                                      args_opt={'optimizer'   : torch.optim.Adam,
+                                                'lr'          : opt.lr,
+                                                'weight_decay': opt.l2
+                                                }
+                                      )
 
-    nn.regressor.is_gpu = opt.gpu != 0
-    nn.regressor.init_session()
-    nn.regressor.load_data(normed_trainx, trainy)
+    model.init_session()
+    model.load_data(normed_trainx, trainy)
 
-    logger.info('Optimizer = %s' % type(nn.regressor.optimizer))
+    logger.info('Optimizer = %s' % type(model.optimizer))
 
     header = 'Step Loss MeaSquE MeaSigE MeaUnsE MaxRelE Acc1% Acc2% Acc5% Acc10%'.split()
     logger.info('%-8s %8s %8s %8s %8s %8s %8s %8s %8s %8s' % tuple(header))
@@ -121,28 +122,27 @@ def main():
     model_saved = False
 
     for i_epoch in range(opt.epoch):
-        step, loss = nn.regressor.fit_epoch()
-
-        if i_epoch % 10 == 0 or i_epoch == opt.epoch - 1:
-            predy = nn.predict_batch(normed_testx)
+        step, loss = model.fit_epoch()
+        if (i_epoch + 1) % 4 == 0 or i_epoch + 1 == opt.epoch:
+            predy = model.predict_batch(normed_validx)
             err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
-                step * i_epoch,
+                step * (i_epoch + 1),
                 loss,
-                metrics.mean_squared_error(testy, predy),
-                metrics.mean_signed_error(testy, predy) * 100,
-                metrics.mean_unsigned_error(testy, predy) * 100,
-                metrics.max_relative_error(testy, predy) * 100,
-                metrics.accuracy(testy, predy, 0.01) * 100,
-                metrics.accuracy(testy, predy, 0.02) * 100,
-                metrics.accuracy(testy, predy, 0.05) * 100,
-                metrics.accuracy(testy, predy, 0.10) * 100)
+                metrics.mean_squared_error(validy, predy),
+                metrics.mean_signed_error(validy, predy) * 100,
+                metrics.mean_unsigned_error(validy, predy) * 100,
+                metrics.max_relative_error(validy, predy) * 100,
+                metrics.accuracy(validy, predy, 0.01) * 100,
+                metrics.accuracy(validy, predy, 0.02) * 100,
+                metrics.accuracy(validy, predy, 0.05) * 100,
+                metrics.accuracy(validy, predy, 0.10) * 100)
 
             logger.info(err_line)
 
         if opt.check != 0:
             if i_epoch % opt.check == 0:  # check convergence
-                predy = nn.predict_batch(normed_testx)
-                mse_history.append(metrics.mean_squared_error(testy, predy))
+                predy = model.predict_batch(normed_validx)
+                mse_history.append(metrics.mean_squared_error(validy, predy))
 
                 if i_epoch > opt.epoch * opt.minstop:
                     conv, cur_conv = validation.is_converge(np.array(mse_history), nskip=25)
@@ -155,11 +155,11 @@ def main():
                         break
 
             elif i_epoch > opt.epoch - opt.check:  # save best one in last frames
-                predy = nn.predict_batch(normed_testx)
-                score = metrics.mean_squared_error(testy, predy)
+                predy = model.predict_batch(normed_validx)
+                score = metrics.mean_squared_error(validy, predy)
                 if best_last_score and best_last_score < score:
                     logger.info('Saving best model in advance: Epoch %d' % i_epoch)
-                    nn.regressor.save(opt.output + '/model.pt')
+                    model.save(opt.output + '/model.pt')
                     model_saved = True
 
                 best_last_score = min(best_last_score, score) if best_last_score else score
@@ -172,12 +172,12 @@ def main():
             logger.warning('Model converged, but the model saved may not be the best.')
 
     if not model_saved:
-        nn.regressor.save(opt.output + '/model.pt')
+        model.save(opt.output + '/model.pt')
 
-    testy = testy[:, 0]
-    predy = nn.predict_batch(normed_testx)[:, 0]
-    visualizer = visualize.LinearVisualizer(trainy[:, 0], nn.predict_batch(normed_trainx)[:, 0], trainname, 'train')
-    visualizer.append(testy, predy, testname, 'test')
+    validy = validy[:, 0]
+    predy = model.predict_batch(normed_validx)[:, 0]
+    visualizer = visualize.LinearVisualizer(trainy[:, 0], model.predict_batch(normed_trainx)[:, 0], trainname, 'train')
+    visualizer.append(validy, predy, validname, 'test')
     visualizer.dump(opt.output + '/fit.txt')
     logger.info('Fitting result saved')
 

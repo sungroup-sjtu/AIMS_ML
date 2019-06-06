@@ -3,7 +3,8 @@ from .simple import SimpleIndexer
 from .rdk import ECFP4Indexer, MorganCountIndexer, Morgan1CountIndexer
 
 encoders_dict = dict([(e.name, e) for e in (WyzIndexer, SimpleIndexer,
-                                            ECFP4Indexer, MorganCountIndexer, Morgan1CountIndexer)])
+                                            ECFP4Indexer, MorganCountIndexer, Morgan1CountIndexer,
+                                            )])
 
 
 class Fingerprint():
@@ -17,6 +18,3 @@ class Fingerprint():
     @property
     def bits(self):
         return list(self.bit_count.values())
-
-
-

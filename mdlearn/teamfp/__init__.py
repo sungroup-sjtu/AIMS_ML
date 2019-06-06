@@ -1,1 +1,1 @@
-from .team import Team
+from .teamfp import TeamFP

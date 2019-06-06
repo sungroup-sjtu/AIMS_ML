@@ -1,7 +1,9 @@
 import sys
 import pathlib
 import numpy as np
+from pathlib import Path
 
+from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Draw
 from rdkit.DataStructs.cDataStructs import UIntSparseIntVect
@@ -11,11 +13,12 @@ class ECFP4Indexer:
     name = 'ecfp4'
 
     def __init__(self):
-        pass
+        self.n_bits = 1024
 
     def index(self, smiles):
         rdk_mol = Chem.MolFromSmiles(smiles)
-        return np.array(list(map(int, Chem.GetMorganFingerprintAsBitVect(rdk_mol, radius=2, nBits=2048))))
+        return np.array(
+            list(map(int, Chem.GetMorganFingerprintAsBitVect(rdk_mol, radius=2, nBits=self.n_bits))))
 
     def index_list(self, smiles_list):
         return [self.index(s) for s in smiles_list]
@@ -25,8 +28,9 @@ class MorganCountIndexer:
     name = 'morgan'
 
     def __init__(self):
-        self.svg_dir = None
+        self.svg_dir: Path = None
         self.radius = 2
+        self.fp_time_limit = 40
 
     def index(self, smiles):
         raise Exception('Use index_list() for this indexer')
@@ -38,7 +42,7 @@ class MorganCountIndexer:
         fpsmi_dict = {}
         index_list = []
 
-        print('\nCalculate with RDKit...')
+        print('Calculate with RDKit...')
         for i, smiles in enumerate(smiles_list):
             if i % 100 == 0:
                 sys.stdout.write('\r\t%i' % i)
@@ -56,13 +60,19 @@ class MorganCountIndexer:
 
                         root, radius = info[idx][0]
                         if radius == 0:
-                            fpsmi_dict[idx] = ''
+                            id_bonds = []
+                            id_atoms = [root]
                         else:
-                            env = Chem.FindAtomEnvironmentOfRadiusN(rdk_mol, radius, root)  # args: mol, radius, atomId
-                            amap = {}
-                            submol = Chem.PathToSubmol(rdk_mol, env, atomMap=amap)
-                            fpsmi_dict[idx] = Chem.MolToSmiles(submol, rootedAtAtom=amap[info[idx][0][0]],
-                                                               isomericSmiles=False, canonical=False)
+                            id_bonds = Chem.FindAtomEnvironmentOfRadiusN(rdk_mol, radius,
+                                                                         root)  # args: mol, radius, atomId
+                            id_atoms = set()
+                            for bid in id_bonds:
+                                id_atoms.add(rdk_mol.GetBondWithIdx(bid).GetBeginAtomIdx())
+                                id_atoms.add(rdk_mol.GetBondWithIdx(bid).GetEndAtomIdx())
+                            id_atoms = list(id_atoms)
+                        smi = Chem.MolFragmentToSmiles(rdk_mol, atomsToUse=id_atoms, rootedAtAtom=root,
+                                                       isomericSmiles=False)
+                        fpsmi_dict[idx] = smi
 
         print('\nFilter identifiers...')
         print('%i identifiers total' % len(identifiers))
@@ -71,7 +81,7 @@ class MorganCountIndexer:
         for fp in fp_list:
             for idx in fp.GetNonzeroElements().keys():
                 identifier_times[idx] += 1
-        identifiers = [idx for idx, times in identifier_times.items() if times >= 40]
+        identifiers = [idx for idx, times in identifier_times.items() if times >= self.fp_time_limit]
         print('%i identifiers saved' % len(identifiers))
 
         for fp in fp_list:
@@ -79,7 +89,9 @@ class MorganCountIndexer:
             index_list.append(np.array(index))
 
         if self.svg_dir is not None:
-            print('\nSave figures...')
+            if not self.svg_dir.exists():
+                self.svg_dir.mkdir()
+            print('Save figures...')
             for idx in identifiers:
                 figure = '%i-%i-%s.svg' % (identifier_times[idx], idx, fpsmi_dict[idx])
                 with open(pathlib.Path(self.svg_dir, figure), 'w') as f:

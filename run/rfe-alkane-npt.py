@@ -4,6 +4,7 @@ import sys
 import argparse
 import numpy as np
 
+import mdlearn.dataloader
 from mdlearn import example, preprocessing, metrics
 
 from sklearn.svm import SVR, LinearSVR
@@ -20,7 +21,7 @@ parser.add_argument('--partition', type=str, help='Partition cache file')
 
 opt = parser.parse_args()
 
-datax, datay = example.load_altp(target=opt.obj)
+datax, datay = mdlearn.dataloader.load(target=opt.obj)
 selector = preprocessing.Selector(datax, datay)
 selector.load(opt.partition)
 trainx, trainy = selector.training_set()

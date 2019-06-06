@@ -3,46 +3,14 @@
 
 import sklearn.model_selection
 import sklearn.preprocessing
-import numpy as np 
-
-def random_select(*arrays, **options):
-    """ Random choosing a fraction of arrays.
-    Kwargs:
-        One of 'size' and 'frac' must be present.
-        'size': int (number of selection)/float (portion of selection);
-        'frac': portion of selection;
-    """
-    for a in arrays[1:]:
-        assert len(a) == len(arrays[0])
-
-    size = options.get('size', None)
-    if isinstance(size, float):
-        size = int(size * len(arrays[0]))
-
-    if not size:
-        frac = options.get('frac', None)
-        size = int(frac * len(arrays[0]))
-    
-    assert size > 0 and size <= len(arrays[0])
-
-    # TODO Not correct. np.random.choice produce duplicated selections
-    selector = np.zeros(len(arrays[0]), dtype=bool)
-    for i in np.random.choice(len(arrays[0]), size):
-        selector[i] = True 
-
-    return [a[selector] for a in arrays] if len(arrays) > 1 else arrays[0][selector]
+import numpy as np
 
 
-def separate(*arrays, **options):
-    """ Random dividing arrays into two parts.
-    Kwargs:
-        'size': int (number of selection)/float (portion of selection)
-    """
-
-    if not 'train_size' in options:
-        options['train_size'] = options.pop('size')
-
-    return sklearn.model_selection.train_test_split(*arrays, **options)
+def separate(array, frac):
+    n = int(round(len(array) * frac))
+    train_array = np.random.choice(array, n, replace=False)
+    test_array = np.array([i for i in array if i not in train_array])
+    return train_array, test_array
 
 
 class Selector:
@@ -56,72 +24,90 @@ class Selector:
         self.validation_index = None
         self.test_index = None
 
+        self.kfold = None
+        self.kfold_train_indexes = None
+        self.kfold_valid_indexes = None
+
         for d in data[1:]:
             assert len(d) == len(data[0]), 'Data does not have same length'
 
         self.data = data
-        self.selected_num = np.arange(len(self.data[0]))
-        self.post_select_index = np.ones(len(self.data[0]), dtype=bool)
+        self.length = len(self.data[0])
+        self.selected_num = np.arange(self.length)
 
-    def partition(self, training_size, validation_size=None):
-        """ Perform 2-partition (training + testing) or 3-partition (training + validating + testing)
+    def partition(self, training_size, validation_size):
+        """ Perform 3-partition (training + validating + testing)
         """
 
-        self.training_index = np.zeros(len(self.data[0]), dtype=bool)
-        self.test_index = np.zeros(len(self.data[0]), dtype=bool)
+        self.training_index = np.zeros(self.length, dtype=bool)
+        self.validation_index = np.zeros(self.length, dtype=bool)
+        self.test_index = np.zeros(self.length, dtype=bool)
 
-        training_num, test_num = separate(self.selected_num, size=training_size)
+        train_valid_num, test_num = separate(self.selected_num, training_size + validation_size)
+        train_num, valid_num = separate(train_valid_num, training_size / (training_size + validation_size))
+        self.training_index[train_num] = True
+        self.validation_index[valid_num] = True
+        self.test_index[test_num] = True
 
-        self.training_index[training_num] = True
+    def kfold_partition(self, train_valid_size, fold=5):
+        self.kfold = fold
+        self.kfold_train_indexes = [np.ones(self.length, dtype=bool) for i in range(fold)]
+        self.kfold_valid_indexes = [np.zeros(self.length, dtype=bool) for i in range(fold)]
+        self.test_index = np.zeros(self.length, dtype=bool)
 
-        if not validation_size:
-            self.test_index[test_num] = True
-            self.validation_index = None
-
+        if train_valid_size < 1:
+            train_valid_num, test_num = separate(self.selected_num, train_valid_size)
         else:
-            validation_num, test_num = separate(test_num, size=validation_size/(1-training_size))
-            self.validation_index = np.zeros(len(self.data[0]), dtype=bool)
-            self.validation_index[validation_num] = True
-            self.test_index[test_num] = True 
+            train_valid_num = self.selected_num[:]
+            test_num = np.array([], dtype=int)
+        self.test_index[test_num] = True
+
+        for k in range(fold):
+            valid_num, train_valid_num = separate(train_valid_num, 1 / (fold - k))
+            self.kfold_valid_indexes[k][valid_num] = True
+            self.kfold_train_indexes[k][valid_num] = False
+            self.kfold_train_indexes[k][test_num] = False
+
+    def kfold_use(self, n):
+        self.training_index = self.kfold_train_indexes[n]
+        self.validation_index = self.kfold_valid_indexes[n]
 
     def training_set(self):
-        idx = np.logical_and(self.training_index, self.post_select_index)
+        idx = self.training_index
         return (d[idx] for d in self.data) if len(self.data) > 1 else self.data[0][idx]
 
     def validation_set(self):
-        idx = np.logical_and(self.validation_index, self.post_select_index)        
+        idx = self.validation_index
         return (d[idx] for d in self.data) if len(self.data) > 1 else self.data[0][idx]
 
     def test_set(self):
-        idx = np.logical_and(self.test_index, self.post_select_index)                
+        idx = self.test_index
+        return (d[idx] for d in self.data) if len(self.data) > 1 else self.data[0][idx]
+
+    def train_valid_set(self):
+        idx = np.logical_not(self.test_index)
         return (d[idx] for d in self.data) if len(self.data) > 1 else self.data[0][idx]
 
     def load(self, filename):
-
         with open(filename, 'r') as f_cache:
             line1 = f_cache.readline().rstrip('\n')
             line2 = f_cache.readline().rstrip('\n')
             line3 = f_cache.readline().rstrip('\n')
 
             self.training_index = np.array(list(map(int, line1)), dtype=bool)
-            self.test_index = np.array(list(map(int, line2)), dtype=bool)
-
-            if line3:
-                self.validation_index = np.array(list(map(int, line3)), dtype=bool)
+            self.validation_index = np.array(list(map(int, line2)), dtype=bool)
+            self.test_index = np.array(list(map(int, line3)), dtype=bool)
 
     def save(self, filename):
-
         with open(filename, 'w') as f_cache:
             f_cache.write(''.join(map(str, self.training_index.astype(int))))
+            f_cache.write('\n')
+            f_cache.write(''.join(map(str, self.validation_index.astype(int))))
             f_cache.write('\n')
             f_cache.write(''.join(map(str, self.test_index.astype(int))))
             f_cache.write('\n')
 
-            if self.validation_index is not None:
-                f_cache.write(''.join(map(str, self.validation_index.astype(int))))
-                f_cache.write('\n')
 
-        
 class Scaler:
     """ StandardScaler that can save
     """

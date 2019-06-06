@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 
 import argparse
-import numpy as np 
-import matplotlib.pyplot as plt 
+import numpy as np
+import matplotlib.pyplot as plt
 from collections import OrderedDict
 
 import sys
+
+import mdlearn.dataloader
+
 sys.path.append('..')
-from mdlearn import example, fitting, preprocessing, metrics, visualize
+from mdlearn import fitting, preprocessing, metrics, visualize
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input', help='Data')
-parser.add_argument('--dir', default='out', help='Model directory')
-parser.add_argument('--fp', help='fingerprints')
-parser.add_argument('--partition', help='Partition file')
-parser.add_argument('--obj', help='Fitting object')
+parser.add_argument('-d', '--dir', default='out', help='Model directory')
+parser.add_argument('-i', '--input', help='Data')
+parser.add_argument('-f', '--fp', help='fingerprints')
+parser.add_argument('-t', '--target', help='Fitting object')
+parser.add_argument('-p', '--part', help='Partition file')
 parser.add_argument('--gpu', default=1, type=int, help='Using GPU')
 parser.add_argument('--visual', default=1, type=int, help='Visualzation data')
 parser.add_argument('--visualx', default='', help='Extra visualisze on special x')
@@ -23,11 +26,9 @@ parser.add_argument('--featrm', default='', type=str, help='Remove features')
 
 opt = parser.parse_args()
 
-fitting.backend = 'tch'
-
-nn = fitting.PerceptronFitter(None, None, [])
-nn.regressor.is_gpu = opt.gpu == 1
-nn.regressor.load(opt.dir + '/model.pt')
+model = fitting.TorchMLPRegressor(None, None, [])
+model.is_gpu = opt.gpu == 1
+model.load(opt.dir + '/model.pt')
 
 scaler = preprocessing.Scaler()
 scaler.load(opt.dir + '/scale.txt')
@@ -39,11 +40,10 @@ elif opt.featrm == '':
 else:
     featrm = list(map(int, opt.featrm.split(',')))
 
-datax, datay, data_names = example.load_altp(filename=opt.input, fps=opt.fp.split(','), target=opt.obj,
-                                             load_names=True, featrm=featrm)
+datax, datay, data_names = mdlearn.dataloader.load(filename=opt.input, target=opt.obj, fps=opt.fp.split(','), featrm=featrm)
 
 selector = preprocessing.Selector(datax, datay, data_names)
-selector.load(opt.partition)
+selector.load(opt.part)
 
 trainx, trainy, trainname = selector.training_set()
 validx, validy, validname = selector.validation_set()
@@ -57,9 +57,10 @@ trainy = trainy.flatten()
 validy = validy.flatten()
 testy = testy.flatten()
 
-trainy_est = nn.predict_batch(normed_trainx).flatten()
-validy_est = nn.predict_batch(normed_validx).flatten()
-testy_est = nn.predict_batch(normed_testx).flatten()
+trainy_est = model.predict_batch(normed_trainx).flatten()
+validy_est = model.predict_batch(normed_validx).flatten()
+testy_est = model.predict_batch(normed_testx).flatten()
+
 
 def evaluate_model(y, y_est):
     mse = metrics.mean_squared_error(y, y_est)
@@ -75,10 +76,10 @@ def evaluate_model(y, y_est):
     eval_results['Max AAE'] = metrics.max_absolute_error(y, y_est)
     eval_results['Bias'] = bias
 
-    eval_results['RRMSE'] = np.sqrt(mse)/np.abs(ave_y)
-    eval_results['MARE'] = ae/np.abs(ave_y)
-    eval_results['Max ARE'] = metrics.max_unsigned_error(y, y_est)
-    eval_results['RBias'] = bias/np.abs(ave_y)
+    eval_results['RRMSE'] = np.sqrt(mse) / np.abs(ave_y)
+    eval_results['MARE'] = ae / np.abs(ave_y)
+    eval_results['Max ARE'] = metrics.max_relative_error(y, y_est)
+    eval_results['RBias'] = bias / np.abs(ave_y)
 
     eval_results['Accuracy1%'] = metrics.accuracy(y, y_est, 0.01)
     eval_results['Accuracy2%'] = metrics.accuracy(y, y_est, 0.02)
@@ -96,7 +97,7 @@ results.append(evaluate_model(np.concatenate((trainy, validy, testy)), np.concat
 
 print('Dataset\t%s' % ('\t'.join(results[0].keys())))
 
-fmt = lambda x:'%.3g' % x
+fmt = lambda x: '%.3g' % x
 
 for name, result in zip(['Training', 'Validation', 'Test', 'Overall'], results):
     print('%s\t%s' % (name, '\t'.join([fmt(v) for v in result.values()])))
@@ -115,7 +116,6 @@ if opt.visual:
     if opt.visualx:
 
         for i in map(int, opt.visualx.split(',')):
-
             visualizer2 = visualize.LinearVisualizer(trainx[:, i], trainy_est - trainy, trainname, 'training')
             visualizer2.append(validx[:, i], validy_est - validy, validname, 'validation')
             visualizer2.append(testx[:, i], testy_est - testy, testname, 'test')

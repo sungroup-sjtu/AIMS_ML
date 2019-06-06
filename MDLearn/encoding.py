@@ -38,10 +38,7 @@ class FPEncoder:
         for Indexer in self.Indexers:
             idxer = Indexer()
             if self.save_svg:
-                svg_dir = pathlib.Path(self.fp_name + '-svg_' + Indexer.name)
-                if not svg_dir.exists():
-                    svg_dir.mkdir()
-                idxer.svg_dir = svg_dir
+                idxer.svg_dir = pathlib.Path(self.fp_name + '-svg_' + Indexer.name)
 
             results_list = idxer.index_list(self.smiles_list)
 
