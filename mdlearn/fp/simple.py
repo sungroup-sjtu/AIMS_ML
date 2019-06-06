@@ -1,94 +1,82 @@
-
-""" Hand coded structral key indexer for alkanes
-"""
-
 import pybel
-from pybel import Smarts
+from rdkit import Chem
+from rdkit.Chem.rdchem import Mol
 import numpy as np
 
 
 class SimpleIndexer:
-    """ Structure key indexer
-    """
     name = 'simple'
 
-    # chain
-
-    Chain4_Matcher = Smarts('CCCC')
-    Chain6_Matcher = Smarts('CCCCCC')
-
-    # methyl
-
-    C3M1_Matcher = Smarts('[CH3][CH]([!H3])[!H3]')
-    C3M2_Matcher = Smarts('[CH3][CH]([CH3])[!H3]')
-    C4M1_Matcher = Smarts('[CH3]C([!H3])([!H3])[!H3]')
-    C4M2_Matcher = Smarts('[!H3]C([CH3])([CH3])[!H3]')
-    C4M3_Matcher = Smarts('[CH3]C([CH3])([CH3])[!H3]')
-
-    # ring branches
-
-    RB1_Matcher = Smarts('[RH1]([!H3])')
-    RB2_Matcher = Smarts('[RH0]([!H3])([!H3])')
-    RM1_Matcher = Smarts('[RH]([CH3])')
-    RM2_Matcher = Smarts('[R]([CH3])([CH3])')
-
     # small rings
-
-    R3_Matcher = Smarts('C1CC1')
-    R4_Matcher = Smarts('C1CCC1')
-    R5_Matcher = Smarts('C1CCCC1')
-    R6_Matcher = Smarts('C1CCCCC1')
-    R7_Matcher = Smarts('C1CCCCCC1')
-    R8_Matcher = Smarts('C1CCCCCCC1')
+    r3_Matcher = pybel.Smarts('*1**1')
+    r4_Matcher = pybel.Smarts('*1***1')
+    r5_Matcher = pybel.Smarts('*1****1')
+    r6_Matcher = pybel.Smarts('*1*****1')
+    r7_Matcher = pybel.Smarts('*1******1')
+    r8_Matcher = pybel.Smarts('*1*******1')
 
     # special rings
-
-    Spiro_Matcher = Smarts('[R1][R2]([R1])([R1])[R1]')
-    Fuse_Matcher = Smarts('[R2][R2]')
-    Bridge_Matcher = Smarts('[R1][R1]([R1])[R1]([R1])[R1]')
-    Bridge3_Matcher = Smarts('[R3]')
+    RR_Matcher = pybel.Smarts('[R]!@[R]')
+    R_R_Matcher = pybel.Smarts('[R]!@*!@[R]')
 
     def __init__(self, *args):
         pass
 
-    def _index_smiles(self, smiles):
-        molecule = pybel.readstring('smi', smiles)
+    def get_chain_length(self, rdk_mol: Mol):
+        wiener = 0
+        max_shortest = 0
+        mol = Chem.RemoveHs(rdk_mol)
+        n_atoms = mol.GetNumAtoms()
+        for i in range(0, n_atoms):
+            for j in range(i + 1, n_atoms):
+                shortest = len(Chem.GetShortestPath(mol, i, j)) - 1
+                wiener += shortest
+                max_shortest = max(max_shortest, shortest)
+        return int(np.log(wiener) * 10), max_shortest
 
-        hv = np.array([a.heavyvalence for a in molecule.atoms])
+    def get_multiring_atoms_bonds(self, rdk_mol: Mol, smiles):
+        atom_ring_times = [0] * rdk_mol.GetNumAtoms()
+        bond_ring_times = [0] * rdk_mol.GetNumBonds()
 
-        def remove_repeat(l):
-            ret = []
-            has_set = set()
-            for l_ in l:
-                if not has_set.intersection(l_):
-                    ret.append(l_)
-                    has_set.update(l_)
+        # TODO GetRingInfo gives SymmetricSSSR, not TRUE SSSR
+        ri = rdk_mol.GetRingInfo()
+        for id_atoms in ri.AtomRings():
+            for ida in id_atoms:
+                atom_ring_times[ida] += 1
+        for id_bonds in ri.BondRings():
+            for idb in id_bonds:
+                bond_ring_times[idb] += 1
 
-            return ret
+        n_atoms_multiring = len(list(filter(lambda x: x > 1, atom_ring_times)))
+        n_bonds_multiring = len(list(filter(lambda x: x > 1, bond_ring_times)))
 
-        chain4match = remove_repeat(SimpleIndexer.Chain4_Matcher.findall(molecule))
-        chain6match = remove_repeat(SimpleIndexer.Chain6_Matcher.findall(molecule))
+        py_mol = pybel.readstring('smi', smiles)
+        if ri.NumRings() != len(py_mol.sssr):
+            print('WARNING: SymmetricSSSR not equal to TRUE SSSR in rdkit. Use Openbabel instead:', smiles)
+            n_atoms_multiring = pybel.Smarts('[R2]').findall(py_mol).__len__()
+            n_bonds_multiring = n_atoms_multiring - 1
 
-        myindex = [
-            molecule.OBMol.NumHvyAtoms(),    # 0 NC
-            len(chain4match),       # 5 chain4
-            len(chain6match),       # 6 chain6
-            len(molecule.sssr),                                # 16 Ring
-            len(SimpleIndexer.R3_Matcher.findall(molecule)),      # 17 R3
-            len(SimpleIndexer.R4_Matcher.findall(molecule)),      # 18 R4
-            len(SimpleIndexer.R5_Matcher.findall(molecule)),      # 18 R4
-            len(SimpleIndexer.R6_Matcher.findall(molecule)),      # 18 R4
-            len(SimpleIndexer.R7_Matcher.findall(molecule)),      # 18 R4
-            len(SimpleIndexer.R8_Matcher.findall(molecule)),      # 18 R4
-            len(SimpleIndexer.Spiro_Matcher.findall(molecule)),    # 20 Fuse
-            len(SimpleIndexer.Fuse_Matcher.findall(molecule)),    # 20 Fuse
-            len(SimpleIndexer.Bridge_Matcher.findall(molecule)),  # 21 Bridge
-            ]
-
-        return myindex
+        return n_atoms_multiring, n_bonds_multiring
 
     def index(self, smiles):
-        return np.array(self._index_smiles(smiles))
+        rd_mol: Mol = Chem.MolFromSmiles(smiles)
+        py_mol = pybel.readstring('smi', smiles)
+        index = [py_mol.OBMol.NumHvyAtoms()] + \
+                list(self.get_chain_length(rd_mol)) + \
+                [
+                    len(py_mol.sssr),
+                    len(SimpleIndexer.r3_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.r4_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.r5_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.r6_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.r7_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.r8_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.RR_Matcher.findall(py_mol)),  # Linked rings
+                    len(SimpleIndexer.R_R_Matcher.findall(py_mol)),  # Linked rings
+                ] + \
+                list(self.get_multiring_atoms_bonds(rd_mol, smiles))
+
+        return np.array(index)
 
     def index_list(self, smiles_list):
         return [self.index(s) for s in smiles_list]
