@@ -32,20 +32,30 @@ class FPEncoder:
 
         self.other_lists = list(other_lists)
 
-    def encode(self):
+    def encode(self, save_fp=True):
         ret_list = []
 
         for Indexer in self.Indexers:
             idxer = Indexer()
+            if idxer.use_pre_idx_list:
+                with open(self.fp_name + '_' + Indexer.name + '.idx') as f:
+                    idxer.pre_idx_list = f.read().splitlines()
+
             if self.save_svg:
                 idxer.svg_dir = pathlib.Path(self.fp_name + '-svg_' + Indexer.name)
 
             results_list = idxer.index_list(self.smiles_list)
 
-            fp_filename = self.fp_name + '_' + Indexer.name
-            with open(fp_filename, 'w') as f_fp:
-                for name, result in zip(self.smiles_list, results_list):
-                    f_fp.write('%s %s\n' % (name, ','.join(map(str, result))))
+            if save_fp:
+                fp_filename = self.fp_name + '_' + Indexer.name
+                with open(fp_filename, 'w') as f_fp:
+                    for name, result in zip(self.smiles_list, results_list):
+                        f_fp.write('%s %s\n' % (name, ','.join(map(str, result))))
+
+            if not idxer.use_pre_idx_list and len(idxer.idx_list) > 0:
+                with open(self.fp_name + '_' + Indexer.name + '.idx', 'w') as f_idx:
+                    for idx in idxer.idx_list:
+                        f_idx.write(f'{idx}\n')
 
             ret_list.append(np.array(results_list))
 

@@ -1,4 +1,3 @@
-
 """ Hand coded structral key indexer for alkanes
 """
 
@@ -6,8 +5,10 @@ import pybel
 from pybel import Smarts
 import numpy as np
 
+from . import Fingerprint
 
-class WyzIndexer:
+
+class WyzIndexer(Fingerprint):
     """ Structure key indexer 
     """
     name = 'wyz'
@@ -34,7 +35,7 @@ class WyzIndexer:
 
     # small rings
 
-    R3_Matcher = Smarts('C1CC1') 
+    R3_Matcher = Smarts('C1CC1')
     R4_Matcher = Smarts('C1CCC1')
     R8_Matcher = Smarts('C1CCCCCCC1')
 
@@ -45,6 +46,7 @@ class WyzIndexer:
     Bridge3_Matcher = Smarts('[R3]')
 
     def __init__(self, *args):
+        super().__init__()
         pass
 
     def _index_smiles(self, smiles):
@@ -66,30 +68,30 @@ class WyzIndexer:
         chain6match = remove_repeat(WyzIndexer.Chain6_Matcher.findall(molecule))
 
         myindex = [
-            len(molecule.atoms),    # 0 NC
-            len(hv[hv==4]),         # 1 C4
-            len(hv[hv==3]),         # 2 C3
-            len(hv[hv==2]),         # 3 C2
-            len(hv[hv==1]),         # 4 C1
-            len(chain4match),       # 5 chain4
-            len(chain6match),       # 6 chain6
-            len(WyzIndexer.C3M1_Matcher.findall(molecule)),    # 7
-            len(WyzIndexer.C3M2_Matcher.findall(molecule)),    # 8
-            len(WyzIndexer.C4M1_Matcher.findall(molecule)),    # 9
-            len(WyzIndexer.C4M2_Matcher.findall(molecule)),    # 10
-            len(WyzIndexer.C4M3_Matcher.findall(molecule)),    # 11
-            len(WyzIndexer.RB1_Matcher.findall(molecule)),     # 12
-            len(WyzIndexer.RB2_Matcher.findall(molecule)),     # 13
-            len(WyzIndexer.RM1_Matcher.findall(molecule)),     # 14
-            len(WyzIndexer.RM2_Matcher.findall(molecule)),     # 15
-            len(molecule.sssr),                                # 16 Ring
-            len(WyzIndexer.R3_Matcher.findall(molecule)),      # 17 R3
-            len(WyzIndexer.R4_Matcher.findall(molecule)),      # 18 R4
-            len(WyzIndexer.R8_Matcher.findall(molecule)),      # 19 R8
-            len(WyzIndexer.Fuse_Matcher.findall(molecule)),    # 20 Fuse
+            len(molecule.atoms),  # 0 NC
+            len(hv[hv == 4]),  # 1 C4
+            len(hv[hv == 3]),  # 2 C3
+            len(hv[hv == 2]),  # 3 C2
+            len(hv[hv == 1]),  # 4 C1
+            len(chain4match),  # 5 chain4
+            len(chain6match),  # 6 chain6
+            len(WyzIndexer.C3M1_Matcher.findall(molecule)),  # 7
+            len(WyzIndexer.C3M2_Matcher.findall(molecule)),  # 8
+            len(WyzIndexer.C4M1_Matcher.findall(molecule)),  # 9
+            len(WyzIndexer.C4M2_Matcher.findall(molecule)),  # 10
+            len(WyzIndexer.C4M3_Matcher.findall(molecule)),  # 11
+            len(WyzIndexer.RB1_Matcher.findall(molecule)),  # 12
+            len(WyzIndexer.RB2_Matcher.findall(molecule)),  # 13
+            len(WyzIndexer.RM1_Matcher.findall(molecule)),  # 14
+            len(WyzIndexer.RM2_Matcher.findall(molecule)),  # 15
+            len(molecule.sssr),  # 16 Ring
+            len(WyzIndexer.R3_Matcher.findall(molecule)),  # 17 R3
+            len(WyzIndexer.R4_Matcher.findall(molecule)),  # 18 R4
+            len(WyzIndexer.R8_Matcher.findall(molecule)),  # 19 R8
+            len(WyzIndexer.Fuse_Matcher.findall(molecule)),  # 20 Fuse
             len(WyzIndexer.Bridge_Matcher.findall(molecule)),  # 21 Bridge
             len(WyzIndexer.Bridge3_Matcher.findall(molecule))  # 22 Bridge3
-            ]
+        ]
 
         return myindex
 
