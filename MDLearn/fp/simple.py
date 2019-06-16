@@ -3,8 +3,10 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import Mol
 import numpy as np
 
+from . import Fingerprint
 
-class SimpleIndexer:
+
+class SimpleIndexer(Fingerprint):
     name = 'simple'
 
     # small rings
@@ -20,6 +22,7 @@ class SimpleIndexer:
     R_R_Matcher = pybel.Smarts('[R]!@*!@[R]')
 
     def __init__(self, *args):
+        super().__init__()
         pass
 
     def get_chain_length(self, rdk_mol: Mol):

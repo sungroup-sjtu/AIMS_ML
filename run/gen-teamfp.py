@@ -41,4 +41,4 @@ if __name__ == '__main__':
 
     with open(os.path.join(opt.output, 'fp_team'), 'w') as f:
         for i, fp in enumerate(fps_new):
-            f.write('%s %s\n' % (smiles_list[i], ','.join(map(str, fp.bits))))
+            f.write('%s %s\n' % (smiles_list[i], ','.join(map(str, fp.bit_list))))

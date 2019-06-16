@@ -45,7 +45,7 @@ else:
             p.append(float(p_))
 
 encoder.load_data(np.array(smiles), np.array(t), np.array(p))
-datax = encoder.encode()
+datax = encoder.encode(save_fp=False)
 datax = scaler.transform(datax)
 datay = model.predict_batch(datax)
 
