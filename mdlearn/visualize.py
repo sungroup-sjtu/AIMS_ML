@@ -55,8 +55,9 @@ class LinearVisualizer:
         if ref is not None:
 
             yrange = (
-                min([np.min(d[0]) for d in self.groups.values()] + [np.min(d[1]) for d in self.groups.values()]),
-                max([np.max(d[0]) for d in self.groups.values()] + [np.max(d[1]) for d in self.groups.values()]))
+                min( [min(d[0]) for d in self.groups.values()] + [min(d[1]) for d in self.groups.values()] ),
+                max( [max(d[0]) for d in self.groups.values()] + [max(d[1]) for d in self.groups.values()] ) 
+            )
 
             if ref == 'line':
 

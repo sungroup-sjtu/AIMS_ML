@@ -17,7 +17,6 @@ class TorchMLPRegressor():
     def init_session(self):
         act_class = self.args_layer.pop('activator', torch.nn.ELU)
         loss_class = self.args_opt.pop('loss', torch.nn.MSELoss)
-        opt_class = self.args_opt.pop('optimizer', torch.optim.Adam)
 
         def init_layer(layer):
             torch.nn.init.normal(layer.weight, std=0.5)
@@ -44,42 +43,36 @@ class TorchMLPRegressor():
             self.regressor.cuda()
 
         self.loss = loss_class()
-        self.optimizer = opt_class(self.regressor.parameters(), **self.args_opt)
+        
+
+
+    def reset_optimizer(self, optim_dict):
+        optim_class = optim_dict['optimizer']
+        self.optimizer = optim_class( self.regressor.parameters(), lr=optim_dict['lr'], weight_decay=optim_dict['weight_decay'] )
 
     def load_data(self, x, y_ref):
-        self.dataset = torch.utils.data.TensorDataset(torch.Tensor(x), torch.Tensor(y_ref))
+        self.dataset = torch.utils.data.TensorDataset(x, y_ref)
         self.dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
 
     def fit_epoch(self):
         cnt = 0
         for i, (x, y) in enumerate(self.dataloader):
-            v_x = torch.autograd.Variable(torch.Tensor(x))
-            v_y = torch.autograd.Variable(torch.Tensor(y))
-
-            if self.is_gpu:
-                v_x, v_y = v_x.cuda(async=True), v_y.cuda(async=True)
-
-            for j in range(self.batch_step):
-                self.optimizer.zero_grad()
-                loss = self.loss(self.regressor(v_x), v_y)
-                loss.backward()
-                self.optimizer.step()
+            self.optimizer.zero_grad()
+            loss = self.loss(self.regressor(x), y)
+            loss.backward()
+            self.optimizer.step()
 
             cnt += 1
 
         loss_data = loss.data.numpy() if not self.is_gpu else loss.data.cpu().numpy()
 
-        return self.batch_step * cnt, loss_data
+        return cnt, loss_data
 
     def predict(self, x):
-        v_x = torch.autograd.Variable(torch.Tensor(x))
-
         if self.is_gpu:
-            v_x = v_x.cuda(async=True)
-            v_y = self.regressor(v_x).data.cpu().numpy()
+            v_y = self.regressor(x).data.cpu().numpy()
         else:
-            v_y = self.regressor(v_x).data.numpy()
-
+            v_y = self.regressor(x).data.numpy()
         return v_y
 
     def predict_batch(self, batch_x):
