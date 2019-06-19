@@ -134,8 +134,7 @@ def main():
                                       )
 
     model.init_session()
-    model.load_data(normed_trainx, trainy)
-    if opt.continuatiuon:
+    if opt.continuation:
         file_dir = opt.output + '/model.pt'
         logger.info('Continue training from checkpoint %s' % (file_dir) )
         model.load( file_dir )
@@ -157,8 +156,8 @@ def main():
         model.reset_optimizer({'optimizer':optimizer, 'lr':opt_lr[k], 'weight_decay':opt.l2 } )
         for i_epoch in range(each_epoch):
             total_epoch += 1
-            step, loss = model.fit_epoch()
-            if (i_epoch + 1) % 1 == 0 or i_epoch + 1 == each_epoch:
+            step, loss = model.fit_epoch(normed_trainx, trainy)
+            if (i_epoch + 1) % 5 == 0 or i_epoch + 1 == each_epoch:
                 predy = model.predict_batch(normed_validx)
                 err_line = '%d/%d %8.3e %8.3e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
                     total_epoch,
@@ -178,9 +177,9 @@ def main():
             if opt.check != 0:
                 if i_epoch % opt.check == 0:  # check convergence
                     predy = model.predict_batch(normed_validx)
-                    mse_history.append(metrics.mean_squared_error(validy, predy))
+                    mse_history.append(metrics.mean_squared_error(validy_, predy))
 
-                    if i_epoch > opt.epoch * opt.minstop:
+                    if i_epoch > sum(opt_epochs) * opt.minstop:
                         conv, cur_conv = validation.is_converge(np.array(mse_history), nskip=25)
                         if conv:
                             logger.info('Model converge detected at epoch %d' % i_epoch)
@@ -190,9 +189,9 @@ def main():
                             logger.info('Model converged at epoch: %d' % i_epoch)
                             break
 
-                elif i_epoch > opt.epoch - opt.check:  # save best one in last frames
+                elif i_epoch > sum(opt_epochs) - opt.check:  # save best one in last frames
                     predy = model.predict_batch(normed_validx)
-                    score = metrics.mean_squared_error(validy, predy)
+                    score = metrics.mean_squared_error(validy_, predy)
                     if best_last_score and best_last_score < score:
                         logger.info('Saving best model in advance: Epoch %d' % i_epoch)
                         model.save(opt.output + '/model.pt')
