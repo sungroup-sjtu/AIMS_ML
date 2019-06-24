@@ -1,16 +1,26 @@
 # mdlearn
 Machine learning of the thermodynamic properties of molecular liquids
 
-* Run `gen-fingerprint.py` to calculate fingerprints.
-* Run `split-data.py` to split original data to train/validate/test datasets based on molecule.
-* Run `train-alkane-npt.py` to train the model. Use `--part xxx` to select partition cache file generated in previous step. Otherwise, the data are splitted randomly, which cause artifacts in prediction.
-* Run `score-alkane-npt.py` to check the performance on test dataset.
-* Run `predict-alkane-npt.py` to predict thermo properties for new molecules.
-* `rfe-alkane-npt.py` is used for feature selection.
-
-See our publication for details
-`Predicting Thermodynamic Properties of Alkanes by High-throughput Force Field Simulation and Machine Learning`
+This is the enhanced version of our previously published work  
+`Predicting Thermodynamic Properties of Alkanes by High-throughput Force Field Simulation and Machine Learning`  
 https://doi.org/10.1021/acs.jcim.8b00407
 
-Original developer is Yanze Wu
-https://github.com/flipboards
+## Steps
+*Following is an example of learning critical temperature of hydrocarbon using two simple fingerprints*
+
+* Calculate fingerprints
+```
+./gen-fingerprint.py -i ../data/nist-CH-tc.txt -e wyz,simple -o fp
+```
+* Split data to train/validate datasets using 5-Fold cross-validation
+```
+./split-data.py -i ../data/nist-CH-tc.txt -o fp
+```
+* Train the model  
+```
+./train-alkane-npt.py -i ../data/nist-CH-tc.txt -t tc -f fp/fp_wyz,fp/fp_simple -p fp/part-1.txt --epoch 40
+```
+* Predict property for new molecules
+```
+./predict-alkane-npt.py -o out -f wyz,simple -i CCCCCC
+```

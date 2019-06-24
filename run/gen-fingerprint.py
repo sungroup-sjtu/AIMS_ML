@@ -21,16 +21,17 @@ def main():
 
     opt = parser.parse_args()
 
-    df = pd.read_table(opt.input, sep='\s+', header=0)
-    smiles_list = df.SMILES.unique().tolist()
-
     if not os.path.exists(opt.output):
         os.mkdir(opt.output)
 
-    encoders=opt.encoder.split(',')
+    df = pd.read_table(opt.input, sep='\s+', header=0)
+    smiles_list = df.SMILES.unique().tolist()
+
+    encoders = opt.encoder.split(',')
     encoder = encoding.FPEncoder(encoders, fp_name=opt.output + '/fp', save_svg=opt.svg)
     encoder.load_data(smiles_list)
     encoder.encode()
+
 
 if __name__ == '__main__':
     main()

@@ -7,7 +7,7 @@ def load(filename, target, fps: [], featrm: [] = None):
         target: 'density'/'einter'/'compress'/'expansion'/'cp'/'hvap'/'st'/'tc'/'dc'
     """
 
-    df = pd.read_csv(filename, sep=' ', index_col=False)
+    df = pd.read_csv(filename, sep='\s+', index_col=False)
 
     other_lists = []
     if 'T' in df.columns:

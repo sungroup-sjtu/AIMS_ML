@@ -30,8 +30,7 @@ def main():
     parser.add_argument('--batch', default=int(1e9), type=int, help='Batch size')
     parser.add_argument('--lr', default=0.005, type=float, help='Initial learning rate')
     parser.add_argument('--l2', default=0.000, type=float, help='L2 Penalty')
-    parser.add_argument('--check', default=10, type=int,
-                        help='Number of epoch that do convergence check. Set 0 to disable.')
+    parser.add_argument('--check', default=0, type=int, help='Number of epoch that do convergence check. Set 0 to disable.')
     parser.add_argument('--minstop', default=0.2, type=float, help='Minimum fraction of step to stop')
     parser.add_argument('--maxconv', default=2, type=int, help='Times of true convergence that makes a stop')
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
