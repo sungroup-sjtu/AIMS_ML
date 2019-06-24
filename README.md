@@ -10,7 +10,7 @@ https://doi.org/10.1021/acs.jcim.8b00407
 
 * Calculate fingerprints
 ```
-./gen-fingerprint.py -i ../data/nist-CH-tc.txt -e wyz,simple -o fp
+./gen-fp.py -i ../data/nist-CH-tc.txt -e wyz,simple -o fp
 ```
 * Split data to train/validate datasets using 5-Fold cross-validation
 ```
@@ -18,9 +18,9 @@ https://doi.org/10.1021/acs.jcim.8b00407
 ```
 * Train the model  
 ```
-./train-alkane-npt.py -i ../data/nist-CH-tc.txt -t tc -f fp/fp_wyz,fp/fp_simple -p fp/part-1.txt --epoch 40
+./train.py -i ../data/nist-CH-tc.txt -t tc -f fp/fp_wyz,fp/fp_simple -p fp/part-1.txt --epoch 40
 ```
 * Predict property for new molecules
 ```
-./predict-alkane-npt.py -o out -f wyz,simple -i CCCCCC
+./predict.py -o out -f wyz,simple -i CCCCCC
 ```
