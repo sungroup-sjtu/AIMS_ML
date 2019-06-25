@@ -2,14 +2,14 @@ import torch.nn
 import torch.utils.data
 import numpy as np
 
+
 class TorchMLPRegressor():
-    def __init__(self, insize, outsize, layers, batch_size=None, batch_step=None,
+    def __init__(self, insize, outsize, layers, batch_size=None,
                  args_layer=dict(), args_opt=dict(), is_gpu=True):
         self.insize = insize
         self.outsize = outsize
         self.layers = layers
         self.batch_size = batch_size
-        self.batch_step = batch_step
         self.args_layer = args_layer
         self.args_opt = args_opt
         self.is_gpu = is_gpu
@@ -43,40 +43,33 @@ class TorchMLPRegressor():
             self.regressor.cuda()
 
         self.loss = loss_class()
-        
-
 
     def reset_optimizer(self, optim_dict):
         optim_class = optim_dict['optimizer']
-        self.optimizer = optim_class( self.regressor.parameters(), lr=optim_dict['lr'], weight_decay=optim_dict['weight_decay'] )
+        self.optimizer = optim_class(self.regressor.parameters(), lr=optim_dict['lr'], weight_decay=optim_dict['weight_decay'])
 
     def load_data(self, x, y_ref):
         self.dataset = torch.utils.data.TensorDataset(x, y_ref)
         self.dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
 
-    def fit_epoch(self,x, y):
-        cnt = 0
-        total_step = int( len(x) / self.batch_size )
-        for i in range(total_step+1):
+    def fit_epoch(self, x, y):
+        total_step = max(1, int(len(x) / self.batch_size))  # The last batch may have data more than self.batch_size
+        for i in range(total_step):
             self.optimizer.zero_grad()
-            if i == total_step:
-                x_batch = x[-self.batch_size:]
-                y_batch = y[-self.batch_size:]
+            if i == total_step - 1:
+                x_batch = x[self.batch_size * i:]
+                y_batch = y[self.batch_size * i:]
             else:
-                x_batch = x[self.batch_size*i:self.batch_size*(i+1)]
-                y_batch = y[self.batch_size*i:self.batch_size*(i+1)]
+                x_batch = x[self.batch_size * i:self.batch_size * (i + 1)]
+                y_batch = y[self.batch_size * i:self.batch_size * (i + 1)]
             loss = self.loss(self.regressor(x_batch), y_batch)
             loss.backward()
             self.optimizer.step()
 
-            cnt += 1
-
-        loss_data = loss.data.numpy() if not self.is_gpu else loss.data.cpu().numpy()
-
-        return cnt, loss_data
+        return loss
 
     def predict(self, x):
-        if type(x)==type(np.array(1)):
+        if type(x) == type(np.array([0])):
             x = torch.Tensor(x)
         if self.is_gpu:
             v_y = self.regressor(x).data.cpu().numpy()

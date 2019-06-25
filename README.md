@@ -22,5 +22,5 @@ https://doi.org/10.1021/acs.jcim.8b00407
 ```
 * Predict property for new molecules
 ```
-./predict.py -o out -f wyz,simple -i CCCCCC
+./predict.py -d out -f wyz,simple -i CCCCCC
 ```

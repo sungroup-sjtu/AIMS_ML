@@ -1,5 +1,5 @@
 import pybel
-from rdkit import Chem
+from rdkit.Chem import AllChem as Chem
 from rdkit.Chem.rdchem import Mol
 import numpy as np
 
@@ -64,18 +64,21 @@ class SimpleIndexer(Fingerprint):
     def index(self, smiles):
         rd_mol: Mol = Chem.MolFromSmiles(smiles)
         py_mol = pybel.readstring('smi', smiles)
-        index = [py_mol.OBMol.NumHvyAtoms()] + \
-                list(self.get_chain_length(rd_mol)) + \
+        index = [py_mol.OBMol.NumHvyAtoms(),
+                 self.get_chain_length(rd_mol)[1]
+                 ] + \
                 [
+                    Chem.CalcNumRotatableBonds(rd_mol),
                     len(py_mol.sssr),
-                    len(SimpleIndexer.r3_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.r3_Matcher.findall(py_mol)) +
                     len(SimpleIndexer.r4_Matcher.findall(py_mol)),
                     len(SimpleIndexer.r5_Matcher.findall(py_mol)),
                     len(SimpleIndexer.r6_Matcher.findall(py_mol)),
-                    len(SimpleIndexer.r7_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.r7_Matcher.findall(py_mol)) +
                     len(SimpleIndexer.r8_Matcher.findall(py_mol)),
+                    Chem.CalcNumAromaticRings(rd_mol),
                     len(SimpleIndexer.RR_Matcher.findall(py_mol)),  # Linked rings
-                    len(SimpleIndexer.R_R_Matcher.findall(py_mol)),  # Linked rings
+                    len(SimpleIndexer.R_R_Matcher.findall(py_mol)),  # Separated rings
                 ] + \
                 list(self.get_multiring_atoms_bonds(rd_mol, smiles))
 

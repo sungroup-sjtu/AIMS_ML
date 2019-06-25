@@ -25,13 +25,11 @@ def main():
     parser.add_argument('-l', '--layer', default='16,16', type=str, help='Size of hidden layers')
     parser.add_argument('--visual', default=1, type=int, help='Visualzation data')
     parser.add_argument('--gpu', default=1, type=int, help='Using gpu')
-    parser.add_argument('--epoch', default="200", type=str, help='Number of epochs')
-    parser.add_argument('--step', default=500, type=int, help='Number of steps trained for each batch')
-    parser.add_argument('--batch', default=int(1e9), type=int, help='Batch size')
-    parser.add_argument('--lr', default="0.005", type=str, help='Initial learning rate')
+    parser.add_argument('--epoch', default="200,400,400", type=str, help='Number of epochs')
+    parser.add_argument('--batch', default=500, type=int, help='Batch size')
+    parser.add_argument('--lr', default="0.01,0.001,0.0001", type=str, help='Initial learning rate')
     parser.add_argument('--l2', default=0.000, type=float, help='L2 Penalty')
-    parser.add_argument('--check', default=10, type=int,
-                        help='Number of epoch that do convergence check. Set 0 to disable.')
+    parser.add_argument('--check', default=20, type=int, help='Number of epoch that do convergence check')
     parser.add_argument('--minstop', default=0.2, type=float, help='Minimum fraction of step to stop')
     parser.add_argument('--maxconv', default=2, type=int, help='Times of true convergence that makes a stop')
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
@@ -98,17 +96,17 @@ def main():
 
     logger.info('Building network...')
     logger.info('Hidden layers = %r' % layers)
-    logger.info('optimizer = %s' % (opt.optim) )
-    logger.info('Initial learning rate = %f' % opt_lr[0])
+    logger.info('optimizer = %s' % (opt.optim))
+    logger.info('Learning rate = %s' % opt_lr)
+    logger.info('Epochs = %s' % opt_epochs)
     logger.info('L2 penalty = %f' % opt.l2)
-    logger.info('Total %d epochs' % sum(opt_epochs))
-    logger.info('Batch = (%d values x %d steps)' % (opt.batch, opt.step))
+    logger.info('Batch size = %d' % opt.batch)
 
-    validy_ = validy.copy() # for further convenience
+    validy_ = validy.copy()  # for further convenience
     trainy_ = trainy.copy()
-    if opt.gpu: # store everything to GPU all at once
+    if opt.gpu:  # store everything to GPU all at once
         logger.info('Using GPU acceleration')
-        device = torch.device( "cuda:0")
+        device = torch.device("cuda:0")
         normed_trainx = torch.Tensor(normed_trainx).to(device)
         trainy = torch.Tensor(trainy).to(device)
         normed_validx = torch.Tensor(normed_validx).to(device)
@@ -123,10 +121,7 @@ def main():
     elif opt.optim == 'ada':
         optimizer = torch.optim.Adagrad
 
-
-
-    model = fitting.TorchMLPRegressor(len(trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, batch_step=opt.step,
-                                      is_gpu=opt.gpu != 0,
+    model = fitting.TorchMLPRegressor(len(trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, is_gpu=opt.gpu != 0,
                                       args_opt={'optimizer'   : optimizer,
                                                 'lr'          : opt.lr,
                                                 'weight_decay': opt.l2
@@ -135,9 +130,9 @@ def main():
 
     model.init_session()
     if opt.continuation:
-        file_dir = opt.output + '/model.pt'
-        logger.info('Continue training from checkpoint %s' % (file_dir) )
-        model.load( file_dir )
+        cpt = opt.output + '/model.pt'
+        logger.info('Continue training from checkpoint %s' % (cpt))
+        model.load(cpt)
 
     logger.info('Optimizer = %s' % (optimizer))
 
@@ -146,24 +141,26 @@ def main():
 
     mse_history = []
     converge_times = 0
-    best_last_score = None
+    mse_min = None
     model_saved = False
+    converged = False
     all_epoch = sum(opt_epochs)
     total_epoch = 0
 
     for k, each_epoch in enumerate(opt_epochs):
-        # implement seperated learning rate
-        model.reset_optimizer({'optimizer':optimizer, 'lr':opt_lr[k], 'weight_decay':opt.l2 } )
-        for i_epoch in range(each_epoch):
+        # implement separated learning rate
+        model.reset_optimizer({'optimizer': optimizer, 'lr': opt_lr[k], 'weight_decay': opt.l2})
+        for i in range(each_epoch):
             total_epoch += 1
-            step, loss = model.fit_epoch(normed_trainx, trainy)
-            if (i_epoch + 1) % 5 == 0 or i_epoch + 1 == each_epoch:
+            loss = model.fit_epoch(normed_trainx, trainy)
+            if total_epoch % opt.check == 0:
                 predy = model.predict_batch(normed_validx)
-                err_line = '%d/%d %8.3e %8.3e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
+                mse = metrics.mean_squared_error(validy_, predy)
+                mse_history.append(mse)
+                err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
                     total_epoch,
-                    sum(opt_epochs),
-                    loss,
-                    metrics.mean_squared_error(validy_, predy),
+                    loss.data.cpu().numpy() if model.is_gpu else loss.data.numpy(),
+                    mse,
                     metrics.mean_signed_error(validy_, predy) * 100,
                     metrics.mean_unsigned_error(validy_, predy) * 100,
                     metrics.max_relative_error(validy_, predy) * 100,
@@ -174,51 +171,39 @@ def main():
 
                 logger.info(err_line)
 
-            if opt.check != 0:
-                if i_epoch % opt.check == 0:  # check convergence
-                    predy = model.predict_batch(normed_validx)
-                    mse_history.append(metrics.mean_squared_error(validy_, predy))
+                if mse_min is None:
+                    mse_min = mse
+                elif mse < mse_min:
+                    model.save(opt.output + '/model.pt')
+                    model_saved = True
+                    mse_min = mse
 
-                    if i_epoch > sum(opt_epochs) * opt.minstop:
-                        conv, cur_conv = validation.is_converge(np.array(mse_history), nskip=25)
-                        if conv:
-                            logger.info('Model converge detected at epoch %d' % i_epoch)
-                            converge_times += 1
+                if total_epoch > all_epoch * opt.minstop:
+                    conv, cur_conv = validation.is_converge(np.array(mse_history), nskip=25)
+                    if conv:
+                        logger.info('Model converge detected at epoch %d' % total_epoch)
+                        converge_times += 1
 
-                        if converge_times >= opt.maxconv and cur_conv:
-                            logger.info('Model converged at epoch: %d' % i_epoch)
-                            break
+                    if converge_times >= opt.maxconv and cur_conv:
+                        logger.info('Model converged at epoch: %d' % total_epoch)
+                        converged = True
+                        break
 
-                elif i_epoch > sum(opt_epochs) - opt.check:  # save best one in last frames
-                    predy = model.predict_batch(normed_validx)
-                    score = metrics.mean_squared_error(validy_, predy)
-                    if best_last_score and best_last_score < score:
-                        logger.info('Saving best model in advance: Epoch %d' % i_epoch)
-                        model.save(opt.output + '/model.pt')
-                        model_saved = True
-
-                    best_last_score = min(best_last_score, score) if best_last_score else score
-
-    if mse_history:
-        conv, cur_conv = validation.is_converge(np.array(mse_history))
-        if not conv:
-            logger.warning('Model not converged.')
-        elif not cur_conv:
-            logger.warning('Model converged, but the model saved may not be the best.')
+    if not converged:
+        logger.warning('Model not converged')
 
     if not model_saved:
         model.save(opt.output + '/model.pt')
 
-    predy = model.predict_batch(normed_validx)
     visualizer = visualize.LinearVisualizer(trainy_.reshape(-1), model.predict_batch(normed_trainx).reshape(-1), trainname, 'train')
-    visualizer.append(validy_.reshape(-1), predy.reshape(-1), validname, 'test')
+    visualizer.append(validy_.reshape(-1), model.predict_batch(normed_validx).reshape(-1), validname, 'valid')
     visualizer.dump(opt.output + '/fit.txt')
+    visualizer.dump_bad_molecules(opt.output + '/error-0.2.txt', threshold=0.2)
     logger.info('Fitting result saved')
 
     if opt.visual:
-        visualizer.scatter_yy(annotate_threshold=0.1, marker='x', lw=0.2, s=5)
-        visualizer.scatter_error(annotate_threshold=0.1, marker='x', lw=0.2, s=5)
-        visualizer.hist_error(label='test', histtype='step', bins=50)
+        visualizer.scatter_yy(annotate_threshold=0.2, marker='x', lw=0.2, s=5)
+        visualizer.hist_error(label='valid', histtype='step', bins=50)
 
         plt.show()
 

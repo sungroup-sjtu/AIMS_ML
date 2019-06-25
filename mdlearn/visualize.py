@@ -1,5 +1,5 @@
 
-import numpy as np 
+import numpy as np
 import matplotlib.pyplot as plt
 
 from . import metrics
@@ -46,17 +46,26 @@ class LinearVisualizer:
 
         output.close()
 
+    def dump_bad_molecules(self, filename, threshold=0.1):
+        output = open(filename, 'w')
+
+        for x, y, name in self.groups.values():
+            for i in np.where(np.abs(y - x) > threshold * np.abs(x))[0]:
+                output.write(f'{name[i]}\t{x[i]}\t{y[i]}\n')
+
+        output.close()
+
     def scatter_yy(self, ref='line', annotate_threshold=0.1, figure_name=None, **kwargs):
         """ Plot scatter(y_ref, y)
             Additional arguments will be passed to plt.scatter
         """
         plt.figure(figure_name)
-        
+
         if ref is not None:
 
             yrange = (
                 min( [min(d[0]) for d in self.groups.values()] + [min(d[1]) for d in self.groups.values()] ),
-                max( [max(d[0]) for d in self.groups.values()] + [max(d[1]) for d in self.groups.values()] ) 
+                max( [max(d[0]) for d in self.groups.values()] + [max(d[1]) for d in self.groups.values()] )
             )
 
             if ref == 'line':
