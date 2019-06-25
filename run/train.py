@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import logging
+from sklearn.decomposition import PCA
 
 logging.captureWarnings(True)
 
@@ -35,6 +36,7 @@ def main():
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
     parser.add_argument('--optim', default='rms', type=str, help='optimizer')
     parser.add_argument('--continuation', default=False, type=bool, help='continue training')
+    parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
 
     opt = parser.parse_args()
 
@@ -83,6 +85,7 @@ def main():
         selector.save(opt.output + '/part.txt')
     trainx, trainy, trainname = selector.training_set()
     validx, validy, validname = selector.validation_set()
+    
 
     logger.info('Training size = %d, Validation size = %d' % (len(trainx), len(validx)))
     logger.info('X input example: (size=%d) %s' % (len(datax[0]), ','.join(map(str, datax[0]))))
@@ -93,6 +96,8 @@ def main():
     scaler.save(opt.output + '/scale.txt')
     normed_trainx = scaler.transform(trainx)
     normed_validx = scaler.transform(validx)
+    if  opt.pca != -1:
+        normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
 
     logger.info('Building network...')
     logger.info('Hidden layers = %r' % layers)
@@ -121,7 +126,7 @@ def main():
     elif opt.optim == 'ada':
         optimizer = torch.optim.Adagrad
 
-    model = fitting.TorchMLPRegressor(len(trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, is_gpu=opt.gpu != 0,
+    model = fitting.TorchMLPRegressor(len(normed_trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, is_gpu=opt.gpu != 0,
                                       args_opt={'optimizer'   : optimizer,
                                                 'lr'          : opt.lr,
                                                 'weight_decay': opt.l2
@@ -207,6 +212,18 @@ def main():
 
         plt.show()
 
+def pca_nd(X, X_valid, n, logger):
+    X_mol = X#[:, :-2]
+    X_unique = np.unique(X_mol, axis=0)
+    pca = PCA(n_components=n)
+    pca.fit(X_unique)
+    X_transform = pca.transform(X_mol)
+    # X_transform = np.c_[X_transform, X[:, -2:]]
+    X_valid_transform  =  X_valid#[:, :-2]
+    X_valid_transform  =  pca.transform(X_valid_transform)
+    # X_valid_transform = np.c_[X_valid_transform, X_valid_transform[:, -2:]]
+    logger.info("total variance explained:%.3f" % (pca.explained_variance_ratio_.sum()) )
+    return X_transform, X_valid_transform, pca.explained_variance_ratio_.sum()
 
 if __name__ == '__main__':
     main()
