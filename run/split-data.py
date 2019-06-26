@@ -30,11 +30,13 @@ def main():
         sel_mol.kfold_use(n)
         mol_train = sel_mol.training_set()
         mol_valid = sel_mol.validation_set()
-        mol_testt = sel_mol.test_set()
 
-        selector.training_index = np.array([m in mol_train for m in smiles_array], dtype=bool)
-        selector.validation_index = np.array([m in mol_valid for m in smiles_array], dtype=bool)
-        selector.test_index = np.array([m in mol_testt for m in smiles_array], dtype=bool)
+        mol_train_dict = dict([(s, 1) for s in mol_train])
+        mol_valid_dict = dict([(s, 1) for s in mol_valid])
+
+        selector.training_index = np.array([mol_train_dict.get(m, 0) for m in smiles_array], dtype=bool)
+        selector.validation_index = np.array([mol_valid_dict.get(m, 0) for m in smiles_array], dtype=bool)
+        selector.test_index = np.logical_not(np.logical_or(selector.training_index, selector.validation_index))
 
         selector.save(opt.output + '/part-%i.txt' % (n + 1))
 

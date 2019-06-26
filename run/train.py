@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
     parser.add_argument('--optim', default='rms', type=str, help='optimizer')
     parser.add_argument('--continuation', default=False, type=bool, help='continue training')
-    parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
+    parser.add_argument('--pca', default=-1, type=int, help='dimension to discard')
 
     opt = parser.parse_args()
 
@@ -141,8 +141,8 @@ def main():
 
     logger.info('Optimizer = %s' % (optimizer))
 
-    header = 'Step Loss MeaSquE MeaSigE MeaUnsE MaxRelE Acc1% Acc2% Acc5% Acc10%'.split()
-    logger.info('%-8s %8s %8s %8s %8s %8s %8s %8s %8s %8s' % tuple(header))
+    header = 'Step Loss MeaSquE MeaSigE MeaUnsE MaxRelE Acc2% Acc5% Acc10%'.split()
+    logger.info('%-8s %8s %8s %8s %8s %8s %8s %8s %8s' % tuple(header))
 
     mse_history = []
     converge_times = 0
@@ -162,14 +162,13 @@ def main():
                 predy = model.predict_batch(normed_validx)
                 mse = metrics.mean_squared_error(validy_, predy)
                 mse_history.append(mse)
-                err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
+                err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
                     total_epoch,
                     loss.data.cpu().numpy() if model.is_gpu else loss.data.numpy(),
                     mse,
                     metrics.mean_signed_error(validy_, predy) * 100,
                     metrics.mean_unsigned_error(validy_, predy) * 100,
                     metrics.max_relative_error(validy_, predy) * 100,
-                    metrics.accuracy(validy_, predy, 0.01) * 100,
                     metrics.accuracy(validy_, predy, 0.02) * 100,
                     metrics.accuracy(validy_, predy, 0.05) * 100,
                     metrics.accuracy(validy_, predy, 0.10) * 100)
@@ -203,11 +202,11 @@ def main():
     visualizer = visualize.LinearVisualizer(trainy_.reshape(-1), model.predict_batch(normed_trainx).reshape(-1), trainname, 'train')
     visualizer.append(validy_.reshape(-1), model.predict_batch(normed_validx).reshape(-1), validname, 'valid')
     visualizer.dump(opt.output + '/fit.txt')
-    visualizer.dump_bad_molecules(opt.output + '/error-0.2.txt', threshold=0.2)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.1.txt', threshold=0.1)
     logger.info('Fitting result saved')
 
     if opt.visual:
-        visualizer.scatter_yy(annotate_threshold=0.2, marker='x', lw=0.2, s=5)
+        visualizer.scatter_yy(annotate_threshold=0.15, marker='x', lw=0.2, s=5)
         visualizer.hist_error(label='valid', histtype='step', bins=50)
 
         plt.show()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import argparse
 import numpy as np
 
@@ -26,7 +27,7 @@ def main():
     scaler.load(opt.dir + '/scale.txt')
 
     encoders = opt.fp.split(',')
-    encoder = encoding.FPEncoder(encoders, fp_name=opt.dir + '/fp_predict')
+    encoder = encoding.FPEncoder(encoders, fp_name=opt.dir + '/fp')
 
     smiles_list = []
     t_list = []

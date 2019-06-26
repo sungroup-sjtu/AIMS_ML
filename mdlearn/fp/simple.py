@@ -1,3 +1,4 @@
+import sys
 import pybel
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem.rdchem import Mol
@@ -9,23 +10,20 @@ from . import Fingerprint
 class SimpleIndexer(Fingerprint):
     name = 'simple'
 
-    # small rings
-    r3_Matcher = pybel.Smarts('*1**1')
-    r4_Matcher = pybel.Smarts('*1***1')
-    r5_Matcher = pybel.Smarts('*1****1')
-    r6_Matcher = pybel.Smarts('*1*****1')
-    r7_Matcher = pybel.Smarts('*1******1')
-    r8_Matcher = pybel.Smarts('*1*******1')
-
-    # special rings
+    # bridged atoms
+    bridg_Matcher = pybel.Smarts('[x3]')
+    # spiro atoms
+    spiro_Matcher = pybel.Smarts('[x4]')
+    # linked rings
     RR_Matcher = pybel.Smarts('[R]!@[R]')
+    # separated rings
     R_R_Matcher = pybel.Smarts('[R]!@*!@[R]')
 
-    def __init__(self, *args):
+    def __init__(self):
         super().__init__()
         pass
 
-    def get_chain_length(self, rdk_mol: Mol):
+    def get_shortest_wiener(self, rdk_mol: Mol):
         wiener = 0
         max_shortest = 0
         mol = Chem.RemoveHs(rdk_mol)
@@ -35,9 +33,36 @@ class SimpleIndexer(Fingerprint):
                 shortest = len(Chem.GetShortestPath(mol, i, j)) - 1
                 wiener += shortest
                 max_shortest = max(max_shortest, shortest)
-        return int(np.log(wiener) * 10), max_shortest
+        return max_shortest, int(np.log(wiener) * 10)
+
+    def get_ring_info(self, py_mol):
+        r34 = 0
+        r5 = 0
+        r6 = 0
+        r78 = 0
+        rlt8 = 0
+        aro = 0
+        for r in py_mol.sssr:
+            rsize = r.Size()
+            if rsize == 3 or rsize == 4:
+                r34 += 1
+            elif r.IsAromatic():
+                aro += 1
+            elif rsize == 5:
+                r5 += 1
+            elif rsize == 6:
+                r6 += 1
+            elif rsize == 7 or rsize == 8:
+                r78 += 1
+            else:
+                rlt8 += 1
+
+        return r34, r5, r6, r78, rlt8, aro
 
     def get_multiring_atoms_bonds(self, rdk_mol: Mol, smiles):
+        '''
+        Not used
+        '''
         atom_ring_times = [0] * rdk_mol.GetNumAtoms()
         bond_ring_times = [0] * rdk_mol.GetNumBonds()
 
@@ -64,25 +89,30 @@ class SimpleIndexer(Fingerprint):
     def index(self, smiles):
         rd_mol: Mol = Chem.MolFromSmiles(smiles)
         py_mol = pybel.readstring('smi', smiles)
-        index = [py_mol.OBMol.NumHvyAtoms(),
-                 self.get_chain_length(rd_mol)[1]
-                 ] + \
-                [
-                    Chem.CalcNumRotatableBonds(rd_mol),
-                    len(py_mol.sssr),
-                    len(SimpleIndexer.r3_Matcher.findall(py_mol)) +
-                    len(SimpleIndexer.r4_Matcher.findall(py_mol)),
-                    len(SimpleIndexer.r5_Matcher.findall(py_mol)),
-                    len(SimpleIndexer.r6_Matcher.findall(py_mol)),
-                    len(SimpleIndexer.r7_Matcher.findall(py_mol)) +
-                    len(SimpleIndexer.r8_Matcher.findall(py_mol)),
-                    Chem.CalcNumAromaticRings(rd_mol),
-                    len(SimpleIndexer.RR_Matcher.findall(py_mol)),  # Linked rings
-                    len(SimpleIndexer.R_R_Matcher.findall(py_mol)),  # Separated rings
+        index = [
+                    py_mol.OBMol.NumHvyAtoms(),
+                    int(round(py_mol.molwt, 1) * 10),
+                    self.get_shortest_wiener(rd_mol)[0],
+                    Chem.CalcNumRotatableBonds(Chem.AddHs(rd_mol)),
+                    len(SimpleIndexer.bridg_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.spiro_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.RR_Matcher.findall(py_mol)),
+                    len(SimpleIndexer.R_R_Matcher.findall(py_mol)),
                 ] + \
-                list(self.get_multiring_atoms_bonds(rd_mol, smiles))
+                list(self.get_ring_info(py_mol))
 
         return np.array(index)
 
     def index_list(self, smiles_list):
-        return [self.index(s) for s in smiles_list]
+        if self._silent:
+            return [self.index(s) for s in smiles_list]
+
+        l = []
+        print('Calculate ...')
+        for i, s in enumerate(smiles_list):
+            if i % 100 == 0:
+                sys.stdout.write('\r\t%i' % i)
+            l.append(self.index(s))
+        print('')
+
+        return l
