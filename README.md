@@ -24,7 +24,7 @@ These scripts are located at directory `run`
 ```
 * Predict property for new molecules
 ```
-./predict.py -d out -e morgan1,simple -i CCCCCC
+./predict.py -d out -e predefinedmorgan1,simple -i CCCCCC
 ```
 *Note that if you train the model with **morgan1** or **morgan** fingerprint, you should use **predefinedmorgan1** or **predefinedmorgan** to predict*
 
