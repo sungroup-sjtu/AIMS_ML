@@ -1,7 +1,5 @@
 
 import numpy as np
-import matplotlib
-matplotlib.rcParams.update({'font.size': 8})
 import matplotlib.pyplot as plt
 
 from . import metrics

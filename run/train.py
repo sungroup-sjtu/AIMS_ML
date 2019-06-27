@@ -4,7 +4,6 @@ import os
 import sys
 import argparse
 import logging
-import shutil
 from sklearn.decomposition import PCA
 
 logging.captureWarnings(True)
@@ -37,7 +36,7 @@ def main():
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
     parser.add_argument('--optim', default='rms', type=str, help='optimizer')
     parser.add_argument('--continuation', default=False, type=bool, help='continue training')
-    parser.add_argument('--pca', default=-1, type=int, help='dimension to discard')
+    parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
 
     opt = parser.parse_args()
 
@@ -75,11 +74,6 @@ def main():
     logger.info('Reading data...')
     datax, datay, data_names = dataloader.load(filename=opt.input, target=opt.target, fps=opt.fp.split(','), featrm=featrm)
 
-    # Store fingerprint identifier files
-    for fp in opt.fp.split(','):
-        if os.path.exists(fp + '.idx'):
-            shutil.copy(fp + '.idx', opt.output)
-
     logger.info('Selecting data...')
     selector = preprocessing.Selector(datax, datay, data_names)
     if opt.part:
@@ -91,6 +85,7 @@ def main():
         selector.save(opt.output + '/part.txt')
     trainx, trainy, trainname = selector.training_set()
     validx, validy, validname = selector.validation_set()
+    
 
     logger.info('Training size = %d, Validation size = %d' % (len(trainx), len(validx)))
     logger.info('X input example: (size=%d) %s' % (len(datax[0]), ','.join(map(str, datax[0]))))
@@ -101,7 +96,7 @@ def main():
     scaler.save(opt.output + '/scale.txt')
     normed_trainx = scaler.transform(trainx)
     normed_validx = scaler.transform(validx)
-    if opt.pca != -1:
+    if  opt.pca != -1:
         normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
 
     logger.info('Building network...')
@@ -146,8 +141,8 @@ def main():
 
     logger.info('Optimizer = %s' % (optimizer))
 
-    header = 'Step Loss MeaSquE MeaSigE MeaUnsE MaxRelE Acc2% Acc5% Acc10%'.split()
-    logger.info('%-8s %8s %8s %8s %8s %8s %8s %8s %8s' % tuple(header))
+    header = 'Step Loss MeaSquE MeaSigE MeaUnsE MaxRelE Acc1% Acc2% Acc5% Acc10%'.split()
+    logger.info('%-8s %8s %8s %8s %8s %8s %8s %8s %8s %8s' % tuple(header))
 
     mse_history = []
     converge_times = 0
@@ -167,13 +162,14 @@ def main():
                 predy = model.predict_batch(normed_validx)
                 mse = metrics.mean_squared_error(validy_, predy)
                 mse_history.append(mse)
-                err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
+                err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
                     total_epoch,
                     loss.data.cpu().numpy() if model.is_gpu else loss.data.numpy(),
                     mse,
                     metrics.mean_signed_error(validy_, predy) * 100,
                     metrics.mean_unsigned_error(validy_, predy) * 100,
                     metrics.max_relative_error(validy_, predy) * 100,
+                    metrics.accuracy(validy_, predy, 0.01) * 100,
                     metrics.accuracy(validy_, predy, 0.02) * 100,
                     metrics.accuracy(validy_, predy, 0.05) * 100,
                     metrics.accuracy(validy_, predy, 0.10) * 100)
@@ -207,29 +203,27 @@ def main():
     visualizer = visualize.LinearVisualizer(trainy_.reshape(-1), model.predict_batch(normed_trainx).reshape(-1), trainname, 'train')
     visualizer.append(validy_.reshape(-1), model.predict_batch(normed_validx).reshape(-1), validname, 'valid')
     visualizer.dump(opt.output + '/fit.txt')
-    visualizer.dump_bad_molecules(opt.output + '/error-0.1.txt', threshold=0.1)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.2.txt', threshold=0.2)
     logger.info('Fitting result saved')
 
     if opt.visual:
-        visualizer.scatter_yy(annotate_threshold=0.15, marker='x', lw=0.2, s=5)
+        visualizer.scatter_yy(annotate_threshold=0.2, marker='x', lw=0.2, s=5)
         visualizer.hist_error(label='valid', histtype='step', bins=50)
 
         plt.show()
 
-
 def pca_nd(X, X_valid, n, logger):
-    X_mol = X  # [:, :-2]
+    X_mol = X#[:, :-2]
     X_unique = np.unique(X_mol, axis=0)
     pca = PCA(n_components=n)
     pca.fit(X_unique)
     X_transform = pca.transform(X_mol)
     # X_transform = np.c_[X_transform, X[:, -2:]]
-    X_valid_transform = X_valid  # [:, :-2]
-    X_valid_transform = pca.transform(X_valid_transform)
+    X_valid_transform  =  X_valid#[:, :-2]
+    X_valid_transform  =  pca.transform(X_valid_transform)
     # X_valid_transform = np.c_[X_valid_transform, X_valid_transform[:, -2:]]
-    logger.info("total variance explained:%.3f" % (pca.explained_variance_ratio_.sum()))
+    logger.info("total variance explained:%.3f" % (pca.explained_variance_ratio_.sum()) )
     return X_transform, X_valid_transform, pca.explained_variance_ratio_.sum()
-
 
 if __name__ == '__main__':
     main()

@@ -32,14 +32,13 @@ class FPEncoder:
 
         self.other_lists = list(other_lists)
 
-    def encode(self, save_fp=True, silent=False):
+    def encode(self, save_fp=True):
         ret_list = []
 
         for Indexer in self.Indexers:
             idxer = Indexer()
-            idxer._silent = silent
-            if idxer.use_pre_idx_list is not None:
-                with open(self.fp_name + '_' + idxer.use_pre_idx_list + '.idx') as f:
+            if idxer.use_pre_idx_list:
+                with open(self.fp_name + '_' + Indexer.name + '.idx') as f:
                     idxer.pre_idx_list = f.read().splitlines()
 
             if self.save_svg:
