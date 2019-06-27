@@ -1,7 +1,7 @@
 class Fingerprint():
     def __init__(self):
         self.bit_count = {}
-        self.use_pre_idx_list = False
+        self.use_pre_idx_list = None
         self._silent = False
 
     @property

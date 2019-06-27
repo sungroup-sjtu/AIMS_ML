@@ -95,5 +95,6 @@ if __name__ == '__main__':
         if s in new_s_list:
             continue
         new_s_list.append(s)
-        tvap = ml_predict('../ml-models/CH-tvap', [s])[0][0]
-        print(f'0\t{py_mol.formula}\t{name}\t{s}\tNone\t{int(round(tvap, 0))}\tNone')
+        tvap = ml_predict('../ml-models/CH-tvap', [s], [], [])[0][0]
+        tc = ml_predict('../ml-models/CH-tc', [s], [], [])[0][0]
+        print(f'0\t{py_mol.formula}\t{name}\t{s}\tNone\t{int(round(tvap, 0))}\t{int(round(tc, 0))}')

@@ -115,7 +115,7 @@ class PredefinedMorganCountIndexer(Fingerprint):
     def __init__(self):
         super().__init__()
         self.radius = 2
-        self.use_pre_idx_list = True
+        self.use_pre_idx_list = 'morgan'
         self.pre_idx_list = []
 
     def index(self, smiles):
@@ -133,3 +133,4 @@ class PredefinedMorgan1CountIndexer(PredefinedMorganCountIndexer):
     def __init__(self):
         super().__init__()
         self.radius = 1
+        self.use_pre_idx_list = 'morgan1'

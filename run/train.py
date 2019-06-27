@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import logging
+import shutil
 from sklearn.decomposition import PCA
 
 logging.captureWarnings(True)
@@ -74,6 +75,11 @@ def main():
     logger.info('Reading data...')
     datax, datay, data_names = dataloader.load(filename=opt.input, target=opt.target, fps=opt.fp.split(','), featrm=featrm)
 
+    # Store fingerprint identifier files
+    for fp in opt.fp.split(','):
+        if os.path.exists(fp + '.idx'):
+            shutil.copy(fp + '.idx', opt.output)
+
     logger.info('Selecting data...')
     selector = preprocessing.Selector(datax, datay, data_names)
     if opt.part:
@@ -85,7 +91,6 @@ def main():
         selector.save(opt.output + '/part.txt')
     trainx, trainy, trainname = selector.training_set()
     validx, validy, validname = selector.validation_set()
-    
 
     logger.info('Training size = %d, Validation size = %d' % (len(trainx), len(validx)))
     logger.info('X input example: (size=%d) %s' % (len(datax[0]), ','.join(map(str, datax[0]))))
@@ -96,7 +101,7 @@ def main():
     scaler.save(opt.output + '/scale.txt')
     normed_trainx = scaler.transform(trainx)
     normed_validx = scaler.transform(validx)
-    if  opt.pca != -1:
+    if opt.pca != -1:
         normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
 
     logger.info('Building network...')
@@ -211,18 +216,20 @@ def main():
 
         plt.show()
 
+
 def pca_nd(X, X_valid, n, logger):
-    X_mol = X#[:, :-2]
+    X_mol = X  # [:, :-2]
     X_unique = np.unique(X_mol, axis=0)
     pca = PCA(n_components=n)
     pca.fit(X_unique)
     X_transform = pca.transform(X_mol)
     # X_transform = np.c_[X_transform, X[:, -2:]]
-    X_valid_transform  =  X_valid#[:, :-2]
-    X_valid_transform  =  pca.transform(X_valid_transform)
+    X_valid_transform = X_valid  # [:, :-2]
+    X_valid_transform = pca.transform(X_valid_transform)
     # X_valid_transform = np.c_[X_valid_transform, X_valid_transform[:, -2:]]
-    logger.info("total variance explained:%.3f" % (pca.explained_variance_ratio_.sum()) )
+    logger.info("total variance explained:%.3f" % (pca.explained_variance_ratio_.sum()))
     return X_transform, X_valid_transform, pca.explained_variance_ratio_.sum()
+
 
 if __name__ == '__main__':
     main()

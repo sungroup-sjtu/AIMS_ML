@@ -10,18 +10,8 @@ from . import Fingerprint
 class SimpleIndexer(Fingerprint):
     name = 'simple'
 
-    # bridged atoms
-    bridg_Matcher = pybel.Smarts('[x3]')
-    # spiro atoms
-    spiro_Matcher = pybel.Smarts('[x4]')
-    # linked rings
-    RR_Matcher = pybel.Smarts('[R]!@[R]')
-    # separated rings
-    R_R_Matcher = pybel.Smarts('[R]!@*!@[R]')
-
     def __init__(self):
         super().__init__()
-        pass
 
     def get_shortest_wiener(self, rdk_mol: Mol):
         wiener = 0
@@ -87,17 +77,27 @@ class SimpleIndexer(Fingerprint):
         return n_atoms_multiring, n_bonds_multiring
 
     def index(self, smiles):
+        # bridged atoms
+        bridg_Matcher = pybel.Smarts('[x3]')
+        # spiro atoms
+        spiro_Matcher = pybel.Smarts('[x4]')
+        # linked rings
+        RR_Matcher = pybel.Smarts('[R]!@[R]')
+        # separated rings
+        R_R_Matcher = pybel.Smarts('[R]!@*!@[R]')
+
         rd_mol: Mol = Chem.MolFromSmiles(smiles)
         py_mol = pybel.readstring('smi', smiles)
+
         index = [
                     py_mol.OBMol.NumHvyAtoms(),
                     int(round(py_mol.molwt, 1) * 10),
                     self.get_shortest_wiener(rd_mol)[0],
                     Chem.CalcNumRotatableBonds(Chem.AddHs(rd_mol)),
-                    len(SimpleIndexer.bridg_Matcher.findall(py_mol)),
-                    len(SimpleIndexer.spiro_Matcher.findall(py_mol)),
-                    len(SimpleIndexer.RR_Matcher.findall(py_mol)),
-                    len(SimpleIndexer.R_R_Matcher.findall(py_mol)),
+                    len(bridg_Matcher.findall(py_mol)),
+                    len(spiro_Matcher.findall(py_mol)),
+                    len(RR_Matcher.findall(py_mol)),
+                    len(R_R_Matcher.findall(py_mol)),
                 ] + \
                 list(self.get_ring_info(py_mol))
 

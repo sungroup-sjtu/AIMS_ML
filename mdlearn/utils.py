@@ -3,7 +3,7 @@ import numpy as np
 from . import fitting, preprocessing, encoding
 
 
-def ml_predict(dir, smiles_list, encoders=None, t_list=None, p_list=None):
+def ml_predict(dir, smiles_list, t_list, p_list, encoders=None):
     '''
     This function is mainly called by other scripts
     :param dir:
@@ -24,7 +24,7 @@ def ml_predict(dir, smiles_list, encoders=None, t_list=None, p_list=None):
         encoders = ['predefinedmorgan1', 'simple']
     encoder = encoding.FPEncoder(encoders, fp_name=os.path.join(dir, 'fp'))
 
-    args = [np.array(l) for l in [smiles_list, t_list, p_list] if l is not None]
+    args = [np.array(l) for l in [smiles_list, t_list, p_list] if len(l) != 0]
     encoder.load_data(*args)
     datax = encoder.encode(save_fp=False, silent=True)
     datax = scaler.transform(datax)
