@@ -8,9 +8,10 @@ https://doi.org/10.1021/acs.jcim.8b00407
 ## Steps
 *Following is an example of learning critical temperature of hydrocarbon using two simple fingerprints*
 
+These scripts are located at directory `run`
+
 * Calculate fingerprints
 ```
-cd run
 ./gen-fp.py -i ../data/nist-CH-tc.txt -e morgan1,simple -o fp
 ```
 * Split data to train/validate datasets using 5-Fold cross-validation
@@ -27,7 +28,10 @@ cd run
 ```
 *Note that if you train the model with **morgan1** or **morgan** fingerprint, you should use **predefinedmorgan1** or **predefinedmorgan** to predict*
 
-* Generate similar structures for those molecules with sad results (Currently only support hydrocarbon)
+## Useful scripts
+These scripts are located at directory `scripts`
+
+* Generate similar structures for those molecules which give depressing results (Currently only support hydrocarbon)
 ```
 ../scripts/gen-similar.py out/error-0.1.txt
 ```
