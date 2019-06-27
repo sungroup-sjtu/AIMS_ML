@@ -32,7 +32,7 @@ class MorganCountIndexer(Fingerprint):
     def __init__(self):
         super().__init__()
         self.radius = 2
-        self.fp_time_limit = 40
+        self.fp_time_limit = 200
         self.svg_dir: Path = None
 
     def index(self, smiles):
@@ -83,7 +83,7 @@ class MorganCountIndexer(Fingerprint):
             for idx in rdkfp.GetNonzeroElements().keys():
                 idx_times[idx] += 1
         self.bit_count = dict([(idx, 0) for idx, times in idx_times.items() if times >= self.fp_time_limit])
-        print('%i identifiers saved' % len(self.idx_list))
+        print('%i identifiers appears in more than %i molecules saved' % (len(self.idx_list), self.fp_time_limit))
 
         for rdkfp in rdkfp_list:
             bits = [rdkfp.GetNonzeroElements().get(idx, 0) for idx in self.idx_list]
@@ -115,7 +115,7 @@ class PredefinedMorganCountIndexer(Fingerprint):
     def __init__(self):
         super().__init__()
         self.radius = 2
-        self.use_pre_idx_list = True
+        self.use_pre_idx_list = 'morgan'
         self.pre_idx_list = []
 
     def index(self, smiles):
@@ -133,3 +133,4 @@ class PredefinedMorgan1CountIndexer(PredefinedMorganCountIndexer):
     def __init__(self):
         super().__init__()
         self.radius = 1
+        self.use_pre_idx_list = 'morgan1'

@@ -9,7 +9,7 @@ import numpy as np
 def separate(array, frac):
     n = int(round(len(array) * frac))
     train_array = np.random.choice(array, n, replace=False)
-    test_array = np.array([i for i in array if i not in train_array])
+    test_array = np.array([i for i in array if i not in train_array], dtype=int)
     return train_array, test_array
 
 
