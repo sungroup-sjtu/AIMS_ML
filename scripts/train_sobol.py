@@ -4,8 +4,7 @@ import os
 import sys
 import argparse
 import logging
-from sklearn.decomposition import PCA
-
+import pickle
 logging.captureWarnings(True)
 
 import matplotlib.pyplot as plt
@@ -38,7 +37,8 @@ def main():
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
     parser.add_argument('--optim', default='rms', type=str, help='optimizer')
     parser.add_argument('--continuation', default=False, type=bool, help='continue training')
-
+    parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
+    # parser.add_argument('--sobel', default=5, type=int, help='dimensions to reduce according to sensitivity analysis')
     opt = parser.parse_args()
 
     if opt.layer != "":
@@ -97,7 +97,6 @@ def main():
     normed_trainx = scaler.transform(trainx)
     normed_validx = scaler.transform(validx)
 
-    logger.info('Building network...')
     logger.info('Hidden layers = %r' % layers)
     logger.info('optimizer = %s' % (opt.optim) )
     logger.info('Initial learning rate = %f' % opt_lr[0])
@@ -116,32 +115,28 @@ def main():
 
     result = []
 
-    for i in range(60, len(trainx)-10, 10):
-        logger.info( 'Start PCA trainning of dimension '+str(i) )
-        pca_i_result = pca_train(i, normed_trainx, trainy,  normed_validx, validy, opt, logger, layers, opt_lr, opt_epochs, optimizer)
-        logger.info('PCA reduced result of dimension %d :' % (i))
-        logger.info( '%.3f variance_explained,\t acc2: %.3f,\t MSE %.3f ' % (pca_i_result) )
-        result.append(pca_i_result)
+    with open(opt.output + '/pickle_example.pickle', 'rb') as file:
+        sobol_idx = pickle.load(file)
+        logger.info('sobol index:%s' % (str(sobol_idx)))
+
+    for i in range(60, len(trainx[0])-10, 5):
+        logger.info( 'Start sobol trainning of dimension '+str(i) )
+        sobol_i_result = sobol_train(i, normed_trainx, trainy,  normed_validx, validy, opt, logger, layers, opt_lr, opt_epochs, optimizer, sobol_idx)
+        logger.info('sobol reduced result of dimension %d :' % (i))
+        logger.info( 'acc2: %.3f,\t MSE %.3f ' % (sobol_i_result) )
+        result.append(sobol_i_result)
 
     logger.info(result)
 
+def sobol_reduce(X, X_valid, n, sobol_idx):
+    '''  n is the total dimensions left  '''
+    X_, X_valid_ = X[:,sobol_idx[-n:]], X_valid[:,sobol_idx[-n:]]
+    X = np.c_[X_, X[:,-2:]]
+    X_valid = np.c_[X_valid_, X_valid[:,-2:]]
+    return X, X_valid
 
-def pca_nd(X, X_valid, n, logger):
-    X_mol = X#[:, :-2]
-    X_unique = np.unique(X_mol, axis=0)
-    pca = PCA(n_components=n)
-    pca.fit(X_unique)
-    X_transform = pca.transform(X_mol)
-    # X_transform = np.c_[X_transform, X[:, -2:]]
-    X_valid_transform  =  X_valid#[:, :-2]
-    X_valid_transform  =  pca.transform(X_valid_transform)
-    # X_valid_transform = np.c_[X_valid_transform, X_valid_transform[:, -2:]]
-    logger.info("total variance explained:%.3f" % (pca.explained_variance_ratio_.sum()) )
-    return X_transform, X_valid_transform, pca.explained_variance_ratio_.sum()
-
-
-def pca_train(n, normed_trainx, trainy,  normed_validx, validy,  opt, logger, layers, opt_lr, opt_epochs, optimizer):
-    trainx, validx, var_ex = pca_nd(normed_trainx, normed_validx, n, logger)
+def sobol_train(n, normed_trainx, trainy,  normed_validx, validy,  opt, logger, layers, opt_lr, opt_epochs, optimizer, sobol_idx):
+    trainx, validx = sobol_reduce(normed_trainx, normed_validx, n, sobol_idx)
     validy_ = validy.copy() # for further convenience
     trainy_ = trainy.copy()
     if opt.gpu: # store everything to GPU all at once
@@ -151,7 +146,7 @@ def pca_train(n, normed_trainx, trainy,  normed_validx, validy,  opt, logger, la
         trainy = torch.Tensor(trainy).to(device)
         validx = torch.Tensor(validx).to(device)
         validy = torch.Tensor(validy).to(device)
-    model = fitting.TorchMLPRegressor(len(trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, batch_step=opt.step,
+    model = fitting.TorchMLPRegressor(len(trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, 
                                       is_gpu=opt.gpu != 0,
                                       args_opt={'optimizer': torch.optim.Adam,
                                                 'lr': opt.lr,
@@ -171,8 +166,8 @@ def pca_train(n, normed_trainx, trainy,  normed_validx, validy,  opt, logger, la
         model.reset_optimizer({'optimizer':optimizer, 'lr':opt_lr[k], 'weight_decay':opt.l2 } )
         for i_epoch in range(each_epoch):
             total_epoch += 1
-            step, loss = model.fit_epoch(trainx, trainy)
-            if (i_epoch + 1) % 1 == 0 or i_epoch + 1 == each_epoch:
+            loss = model.fit_epoch(trainx, trainy)
+            if (i_epoch + 1) % 10 == 0 or i_epoch + 1 == each_epoch:
                 predy = model.predict_batch(validx)
                 err_line = '%d/%d %8.3e %8.3e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
                     total_epoch,
@@ -188,7 +183,7 @@ def pca_train(n, normed_trainx, trainy,  normed_validx, validy,  opt, logger, la
                     metrics.accuracy(validy_, predy, 0.10) * 100)
                 logger.info(err_line)
 
-    return  var_ex, metrics.accuracy(validy_, predy, 0.02) * 100, metrics.mean_squared_error(validy, predy)
+    return  metrics.accuracy(validy_, predy, 0.02) * 100, metrics.mean_squared_error(validy, predy)
 
 if __name__ == '__main__':
     main()

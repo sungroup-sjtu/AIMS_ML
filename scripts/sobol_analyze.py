@@ -17,9 +17,8 @@ import torch
 
 sys.path.append('..')
 from mdlearn import fitting, visualize, metrics, preprocessing, validation, dataloader
-from train_pca import pca_nd
 
-def sobol_analyze(model, X, N=5000, **kwargs):
+def sobol_analyze(model, X, logger, N=5000, **kwargs, ):
     ''' INPUT:
             ::model::  the NN that takes X as input,
             ::X:: a 2D vector of input [batch_size, feature_length] 
@@ -36,10 +35,10 @@ def sobol_analyze(model, X, N=5000, **kwargs):
         'names': ['x'+str(i) for i in range(X.shape[1])],
         'bounds': bounds
     }
-    print("Generate feature samples")
+    logger.info("Generate feature samples")
     params_value = saltelli.sample(all_feature_problem, N)
     y_est = model.predict_batch(params_value).flatten()
-    print("Start analyze")
+    logger.info("Start analyze")
     result = sobol.analyze( all_feature_problem, y_est, **kwargs )
 
     return result
@@ -75,15 +74,15 @@ def load_data(opt, logger):
     
     logger.info('loading model...')
     scaler = preprocessing.Scaler()
-    scaler.load(opt.dir + '/scale.txt')
+    scaler.load(opt.output + '/scale.txt')
     normed_trainx = scaler.transform(trainx)
     normed_validx = scaler.transform(validx)
     model = fitting.TorchMLPRegressor(None, None, [],
                                       is_gpu= False,
                                       )
     model.load(opt.output + '/model.pt')
-    if  opt.pca != -1:
-        normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca)
+    #if  opt.pca != -1:
+    #    normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca)
     return normed_validx, validy, model
 
 def main():
@@ -95,6 +94,7 @@ def main():
     parser.add_argument('-p', '--part', default='', type=str, help='Partition cache file')
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
     parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
+    parser.add_argument('-l', '--layer', default='16,16', type=str, help='Size of hidden layers')
 
     opt = parser.parse_args()
 
@@ -111,8 +111,14 @@ def main():
 
     validx, validy, model = load_data(opt, logger)
     logger.info('performing sobel sensitivity analysis...')
-    result = sobol_analyze(model, validx, 1000)
-    sobel_idx = np.argsort(result['S1'])
+    result = sobol_analyze(model, validx, logger, 1000)
+    sobel_idx = np.argsort(result['S1'][:-2])
     logger.info('saving model')
-    pickle.dump(sobel_idx, opt.out + '/sobel_idx.pkl')
+    with open(opt.output + '/pickle_example.pickle', 'wb') as file:
+        pickle.dump(sobel_idx, file)
+        logger.info('save success')
     logger.info('analysis success')
+
+
+if __name__=="__main__":
+    main()
