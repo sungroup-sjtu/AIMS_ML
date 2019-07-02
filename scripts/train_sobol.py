@@ -119,7 +119,7 @@ def main():
         sobol_idx = pickle.load(file)
         logger.info('sobol index:%s' % (str(sobol_idx)))
 
-    for i in range(60, len(trainx[0])-10, 5):
+    for i in range(60, len(trainx[0]), 5):
         logger.info( 'Start sobol trainning of dimension '+str(i) )
         sobol_i_result = sobol_train(i, normed_trainx, trainy,  normed_validx, validy, opt, logger, layers, opt_lr, opt_epochs, optimizer, sobol_idx)
         logger.info('sobol reduced result of dimension %d :' % (i))

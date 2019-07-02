@@ -6,6 +6,7 @@ import argparse
 import logging
 import shutil
 from sklearn.decomposition import PCA
+import pickle
 
 logging.captureWarnings(True)
 
@@ -38,6 +39,7 @@ def main():
     parser.add_argument('--optim', default='rms', type=str, help='optimizer')
     parser.add_argument('--continuation', default=False, type=bool, help='continue training')
     parser.add_argument('--pca', default=-1, type=int, help='dimension to discard')
+    parser.add_argument('--sobol', default=-1, type=int, help='dimensions to reduce according to sensitivity analysis')
 
     opt = parser.parse_args()
 
@@ -101,9 +103,18 @@ def main():
     scaler.save(opt.output + '/scale.txt')
     normed_trainx = scaler.transform(trainx)
     normed_validx = scaler.transform(validx)
-    if opt.pca != -1:
-        normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
 
+    if opt.sobol != -1:
+        with open(opt.output + '/pickle_example.pickle', 'rb') as file:
+            sobol_idx = pickle.load(file)
+        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0])-2-opt.sobol, sobol_idx) 
+        logger.info('sobol SA reduced dimension:%d' % (opt.sobol) )
+
+    if  opt.pca != -1:
+        normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
+        logger.info('pca reduced dimension:%d' % (opt.pca) )
+
+    logger.info('final input length:%d' % (len(normed_trainx[0])) )
     logger.info('Building network...')
     logger.info('Hidden layers = %r' % layers)
     logger.info('optimizer = %s' % (opt.optim))
@@ -230,6 +241,12 @@ def pca_nd(X, X_valid, n, logger):
     logger.info("total variance explained:%.3f" % (pca.explained_variance_ratio_.sum()))
     return X_transform, X_valid_transform, pca.explained_variance_ratio_.sum()
 
+def sobol_reduce(X, X_valid, n, sobol_idx):
+    '''  n is the total dimensions left  '''
+    X_, X_valid_ = X[:,sobol_idx[-n:]], X_valid[:,sobol_idx[-n:]]
+    X = np.c_[X_, X[:,-2:]]
+    X_valid = np.c_[X_valid_, X_valid[:,-2:]]
+    return X, X_valid
 
 if __name__ == '__main__':
     main()
