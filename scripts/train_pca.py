@@ -116,7 +116,7 @@ def main():
 
     result = []
 
-    for i in range(60, len(trainx[0])-10, 10):
+    for i in range(60, len(trainx[0]), 10):
         logger.info( 'Start PCA trainning of dimension '+str(i) )
         pca_i_result = pca_train(i, normed_trainx, trainy,  normed_validx, validy, opt, logger, layers, opt_lr, opt_epochs, optimizer)
         logger.info('PCA reduced result of dimension %d :' % (i))
@@ -175,7 +175,7 @@ def pca_train(n, normed_trainx, trainy,  normed_validx, validy,  opt, logger, la
         for i_epoch in range(each_epoch):
             total_epoch += 1
             loss = model.fit_epoch(trainx, trainy)
-            if (i_epoch + 1) % 5 == 0 or i_epoch + 1 == each_epoch:
+            if (i_epoch + 1) % 10 == 0 or i_epoch + 1 == each_epoch:
                 predy = model.predict_batch(validx)
                 err_line = '%d/%d %8.3e %8.3e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
                     total_epoch,
