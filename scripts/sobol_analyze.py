@@ -18,7 +18,7 @@ import torch
 sys.path.append('..')
 from mdlearn import fitting, visualize, metrics, preprocessing, validation, dataloader
 
-def sobol_analyze(model, X, logger, N=5000, **kwargs, ):
+def sobol_analyze(model, X, logger, N=5000, **kwargs ):
     ''' INPUT:
             ::model::  the NN that takes X as input,
             ::X:: a 2D vector of input [batch_size, feature_length] 
@@ -87,14 +87,29 @@ def load_data(opt, logger):
 
 def main():
     parser = argparse.ArgumentParser(description='Alkane property fitting demo')
+    parser = argparse.ArgumentParser(description='Alkane property fitting demo')
     parser.add_argument('-i', '--input', type=str, help='Data')
     parser.add_argument('-f', '--fp', type=str, help='Fingerprints')
     parser.add_argument('-o', '--output', default='out', type=str, help='Output directory')
     parser.add_argument('-t', '--target', default='raw_density', type=str, help='Fitting target')
     parser.add_argument('-p', '--part', default='', type=str, help='Partition cache file')
-    parser.add_argument('--featrm', default='', type=str, help='Remove features')
-    parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
     parser.add_argument('-l', '--layer', default='16,16', type=str, help='Size of hidden layers')
+    parser.add_argument('--visual', default=1, type=int, help='Visualzation data')
+    parser.add_argument('--gpu', default=1, type=int, help='Using gpu')
+    parser.add_argument('--epoch', default="200", type=str, help='Number of epochs')
+    parser.add_argument('--step', default=500, type=int, help='Number of steps trained for each batch')
+    parser.add_argument('--batch', default=int(1e9), type=int, help='Batch size')
+    parser.add_argument('--lr', default="0.005", type=str, help='Initial learning rate')
+    parser.add_argument('--l2', default=0.000, type=float, help='L2 Penalty')
+    parser.add_argument('--check', default=10, type=int,
+                        help='Number of epoch that do convergence check. Set 0 to disable.')
+    parser.add_argument('--minstop', default=0.2, type=float, help='Minimum fraction of step to stop')
+    parser.add_argument('--maxconv', default=2, type=int, help='Times of true convergence that makes a stop')
+    parser.add_argument('--featrm', default='', type=str, help='Remove features')
+    parser.add_argument('--optim', default='rms', type=str, help='optimizer')
+    parser.add_argument('--continuation', default=False, type=bool, help='continue training')
+    parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
+    parser.add_argument('--sobol', default=-1, type=int, help='dimensions to reduce according to sensitivity analysis')
 
     opt = parser.parse_args()
 
