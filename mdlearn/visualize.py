@@ -1,7 +1,6 @@
-
 import numpy as np
 import matplotlib
-matplotlib.rcParams.update({'font.size': 8})
+# matplotlib.rcParams.update({'font.size': 8})
 import matplotlib.pyplot as plt
 
 from . import metrics
@@ -57,7 +56,7 @@ class LinearVisualizer:
 
         output.close()
 
-    def scatter_yy(self, ref='line', annotate_threshold=0.1, figure_name=None, **kwargs):
+    def scatter_yy(self, savefig=None, ref='line', annotate_threshold=0.1, figure_name=None, **kwargs):
         """ Plot scatter(y_ref, y)
             Additional arguments will be passed to plt.scatter
         """
@@ -81,14 +80,17 @@ class LinearVisualizer:
             ]
         plt.legend(plots, groupnames, loc='lower right')
 
-        if annotate_threshold >= 0:
+        if annotate_threshold > 0:
 
             for x, y, name in self.groups.values():
                 for i in np.where(np.abs(y - x) > annotate_threshold * np.abs(x))[0]:
                     plt.annotate(name[i].split()[0], (x[i], y[i]))
 
+        if savefig is not None:
+            plt.savefig(savefig)
 
-    def scatter_error(self, ref='line', error='abs', annotate_threshold=0.1, figure_name=None, **kwargs):
+
+    def scatter_error(self, savefig=None, ref='line', error='abs', annotate_threshold=0.1, figure_name=None, **kwargs):
 
         plt.figure(figure_name)
         groupnames = list(self.groups.keys())
@@ -111,14 +113,17 @@ class LinearVisualizer:
                 plt.axhline(0, yrange[0], yrange[1], color='b', lw=0.4)
 
 
-        if annotate_threshold >= 0:
+        if annotate_threshold > 0:
 
             for x, y, name in self.groups.values():
                 for i in np.where(metrics.relative_error(x, y) > annotate_threshold)[0]:
                     plt.annotate(name[i].split()[0], (x[i], y[i]))
 
+        if savefig is not None:
+            plt.savefig(savefig)
 
-    def scatter_xy(self, label='default', data='relerr', figure_name=None, **kwargs):
+
+    def scatter_xy(self, savefig=None, label='default', data='relerr', figure_name=None, **kwargs):
 
         plt.figure(figure_name)
         y1, y2, x = self.groups[label]
@@ -140,8 +145,11 @@ class LinearVisualizer:
 
         plt.scatter(x, y, **kwargs)
 
+        if savefig is not None:
+            plt.savefig(savefig)
 
-    def hist_error(self, label='default', errtype='rel', figure_name=None, **kwargs):
+
+    def hist_error(self, savefig=None, label='default', errtype='rel', figure_name=None, **kwargs):
         x, y = self.groups[label][:2]
 
         if errtype == 'rel':
@@ -155,3 +163,6 @@ class LinearVisualizer:
 
         plt.figure(figure_name)
         plt.hist(err, **kwargs)
+
+        if savefig is not None:
+            plt.savefig(savefig)
