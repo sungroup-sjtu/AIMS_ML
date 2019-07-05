@@ -18,7 +18,7 @@ import torch
 sys.path.append('..')
 from mdlearn import fitting, visualize, metrics, preprocessing, validation, dataloader
 
-def sobol_analyze(model, X, logger, N=5000, **kwargs ):
+def sobol_analyze(model, X, logger, N=50000, **kwargs ):
     ''' INPUT:
             ::model::  the NN that takes X as input,
             ::X:: a 2D vector of input [batch_size, feature_length] 
@@ -129,7 +129,9 @@ def main():
     result = sobol_analyze(model, validx, logger, 1000)
     sobel_idx = np.argsort(result['S1'][:-2])
     logger.info('saving model')
-    with open(opt.output + '/pickle_example.pickle', 'wb') as file:
+    with open(opt.output + '/sobol_S1.pkl', 'wb') as file:
+        pickle.dump(result['S1'], file)
+    with open(opt.output + '/sobol_idx.pkl', 'wb') as file:
         pickle.dump(sobel_idx, file)
         logger.info('save success')
     logger.info('analysis success')

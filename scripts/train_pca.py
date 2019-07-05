@@ -118,7 +118,7 @@ def main():
 
     result = []
 
-    for i in range(20, len(trainx[0]), 5):
+    for i in range(60, len(trainx[0]), 5):
         logger.info( 'Start PCA trainning of dimension '+str(i) )
         pca_i_result = pca_train(i, normed_trainx, trainy,  normed_validx, validy, opt, logger, layers, opt_lr, opt_epochs, optimizer)
         logger.info('PCA reduced result of dimension %d :' % (i))
