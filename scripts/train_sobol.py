@@ -38,7 +38,7 @@ def main():
     parser.add_argument('--optim', default='rms', type=str, help='optimizer')
     parser.add_argument('--continuation', default=False, type=bool, help='continue training')
     parser.add_argument('--pca', default=0, type=int, help='dimension to discard')
-    # parser.add_argument('--sobel', default=5, type=int, help='dimensions to reduce according to sensitivity analysis')
+    parser.add_argument('--sobol', default=-1, type=int, help='dimensions to reduce according to sensitivity analysis')
     opt = parser.parse_args()
 
     if opt.layer != "":
@@ -119,7 +119,7 @@ def main():
         sobol_idx = pickle.load(file)
         logger.info('sobol index:%s' % (str(sobol_idx)))
 
-    for i in range(60, len(trainx[0]), 5):
+    for i in range(20, len(trainx[0]), 5):
         logger.info( 'Start sobol trainning of dimension '+str(i) )
         sobol_i_result = sobol_train(i, normed_trainx, trainy,  normed_validx, validy, opt, logger, layers, opt_lr, opt_epochs, optimizer, sobol_idx)
         logger.info('sobol reduced result of dimension %d :' % (i))
@@ -167,7 +167,7 @@ def sobol_train(n, normed_trainx, trainy,  normed_validx, validy,  opt, logger, 
         for i_epoch in range(each_epoch):
             total_epoch += 1
             loss = model.fit_epoch(trainx, trainy)
-            if (i_epoch + 1) % 10 == 0 or i_epoch + 1 == each_epoch:
+            if (i_epoch + 1) % 20 == 0 or i_epoch + 1 == each_epoch:
                 predy = model.predict_batch(validx)
                 err_line = '%d/%d %8.3e %8.3e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
                     total_epoch,
