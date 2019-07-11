@@ -116,3 +116,43 @@ class SimpleIndexer(Fingerprint):
         print('')
 
         return l
+
+
+class ExtraIndexer(Fingerprint):
+    name = 'extra'
+
+    def __init__(self):
+        super().__init__()
+
+    def index(self, smiles):
+        double_double = pybel.Smarts('*=**=*')
+        double_triple = pybel.Smarts('*=**#*')
+        double_tert = pybel.Smarts('*=*[CX4;H0]')
+        triple_tert = pybel.Smarts('*#*[CX4;H0]')
+        r7wired = pybel.Smarts('C1=CC=CC=CC1')
+
+        py_mol = pybel.readstring('smi', smiles)
+
+        index = [
+            len(double_double.findall(py_mol)),
+            len(double_triple.findall(py_mol)),
+            len(double_tert.findall(py_mol)),
+            len(triple_tert.findall(py_mol)),
+            len(r7wired.findall(py_mol)),
+        ]
+
+        return np.array(index)
+
+    def index_list(self, smiles_list):
+        if self._silent:
+            return [self.index(s) for s in smiles_list]
+
+        l = []
+        print('Calculate ...')
+        for i, s in enumerate(smiles_list):
+            if i % 100 == 0:
+                sys.stdout.write('\r\t%i' % i)
+            l.append(self.index(s))
+        print('')
+
+        return l

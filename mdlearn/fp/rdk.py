@@ -76,13 +76,13 @@ class MorganCountIndexer(Fingerprint):
                         fpsmi_dict[idx] = smi
 
         print('\nFilter identifiers...')
-        identifiers = list(sorted(set(identifiers)))
+        identifiers = set(identifiers)
         print('%i identifiers total' % len(identifiers))
         idx_times = dict([(id, 0) for id in identifiers])
         for rdkfp in rdkfp_list:
             for idx in rdkfp.GetNonzeroElements().keys():
                 idx_times[idx] += 1
-        self.bit_count = dict([(idx, 0) for idx, times in idx_times.items() if times >= self.fp_time_limit])
+        self.bit_count = dict([(idx, 0) for idx, times in sorted(idx_times.items(), key=lambda x: x[1], reverse=True) if times >= self.fp_time_limit])
         print('%i identifiers appears in more than %i molecules saved' % (len(self.idx_list), self.fp_time_limit))
 
         for rdkfp in rdkfp_list:
