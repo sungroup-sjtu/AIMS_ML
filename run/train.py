@@ -11,11 +11,7 @@ import pickle
 logging.captureWarnings(True)
 
 import matplotlib
-
-if sys.platform == 'linux':
-    print('Use non-interactive Agg backend for matplotlib on linux')
-    matplotlib.use('Agg')
-
+matplotlib.rcParams.update({'font.size': 15})
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -70,6 +66,10 @@ def main():
     clog.setFormatter(formatter)
     logger.addHandler(flog)
     logger.addHandler(clog)
+
+    if sys.platform == 'linux':
+        logger.info('Use non-interactive Agg backend for matplotlib on linux')
+        matplotlib.use('Agg')
 
     if opt.featrm == 'auto':
         logger.info('Automatically remove features')
@@ -221,17 +221,17 @@ def main():
     if not model_saved:
         model.save(opt.output + '/model.pt')
 
-    visualizer = visualize.LinearVisualizer(trainy_.reshape(-1), model.predict_batch(normed_trainx).reshape(-1), trainname, 'train')
-    visualizer.append(validy_.reshape(-1), model.predict_batch(normed_validx).reshape(-1), validname, 'valid')
+    visualizer = visualize.LinearVisualizer(trainy_.reshape(-1), model.predict_batch(normed_trainx).reshape(-1), trainname, 'training')
+    visualizer.append(validy_.reshape(-1), model.predict_batch(normed_validx).reshape(-1), validname, 'validation')
     visualizer.dump(opt.output + '/fit.txt')
-    visualizer.dump_bad_molecules(opt.output + '/error-0.1.txt', threshold=0.1)
-    visualizer.dump_bad_molecules(opt.output + '/error-0.2.txt', threshold=0.2)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.1.txt', 'validation', threshold=0.1)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.15.txt', 'validation', threshold=0.15)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.2.txt', 'validation', threshold=0.2)
     logger.info('Fitting result saved')
 
     if opt.visual:
         visualizer.scatter_yy(savefig=opt.output + '/error-train.png', annotate_threshold=0, marker='x', lw=0.2, s=5)
-        visualizer.hist_error(savefig=opt.output + '/error-hist.png', label='valid', histtype='step', bins=50)
-
+        visualizer.hist_error(savefig=opt.output + '/error-hist.png', label='validation', histtype='step', bins=50)
         plt.show()
 
 

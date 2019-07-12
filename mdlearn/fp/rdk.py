@@ -8,6 +8,7 @@ from rdkit.Chem import Draw
 from rdkit.DataStructs.cDataStructs import UIntSparseIntVect
 
 from . import Fingerprint
+from .drawmorgan import DrawMorganBit
 
 
 class ECFP4Indexer(Fingerprint):
@@ -59,11 +60,10 @@ class MorganCountIndexer(Fingerprint):
             if self.svg_dir is not None:
                 for idx in info.keys():
                     if idx not in fpsvg_dict:
-                        fpsvg_dict[idx] = Draw.DrawMorganBit(rdk_mol, idx, info)
+                        fpsvg_dict[idx] = DrawMorganBit(rdk_mol, idx, info)
 
                         root, radius = info[idx][0]
                         if radius == 0:
-                            id_bonds = []
                             id_atoms = [root]
                         else:
                             id_bonds = Chem.FindAtomEnvironmentOfRadiusN(rdk_mol, radius, root)  # args: mol, radius, atomId

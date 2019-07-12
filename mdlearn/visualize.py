@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib
-# matplotlib.rcParams.update({'font.size': 8})
 import matplotlib.pyplot as plt
 
 from . import metrics
@@ -47,12 +45,12 @@ class LinearVisualizer:
 
         output.close()
 
-    def dump_bad_molecules(self, filename, threshold=0.1):
+    def dump_bad_molecules(self, filename, label, threshold=0.1):
         output = open(filename, 'w')
 
-        for x, y, name in self.groups.values():
-            for i in np.where(np.abs(y - x) > threshold * np.abs(x))[0]:
-                output.write(f'{name[i]}\t{x[i]}\t{y[i]}\n')
+        x, y, name = self.groups[label]
+        for i in np.where(np.abs(y - x) > threshold * np.abs(x))[0]:
+            output.write(f'{name[i]}\t{x[i]}\t{y[i]}\n')
 
         output.close()
 
@@ -79,6 +77,9 @@ class LinearVisualizer:
             plt.scatter(self.groups[l][0], self.groups[l][1], color=LinearVisualizer.colormap[i], **kwargs) for i, l in enumerate(groupnames)
             ]
         plt.legend(plots, groupnames, loc='lower right')
+
+        plt.xlabel('Reference')
+        plt.ylabel('Machine learning')
 
         if annotate_threshold > 0:
 
@@ -163,6 +164,9 @@ class LinearVisualizer:
 
         plt.figure(figure_name)
         plt.hist(err, **kwargs)
+
+        plt.xlabel('Deviation')
+        plt.ylabel('Number of points')
 
         if savefig is not None:
             plt.savefig(savefig)
