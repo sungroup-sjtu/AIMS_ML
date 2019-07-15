@@ -111,16 +111,16 @@ def main():
     normed_validx = scaler.transform(validx)
 
     if opt.sobol != -1:
-        with open(opt.output + '/pickle_example.pickle', 'rb') as file:
+        with open(opt.output + '/sobol_idx.pkl', 'rb') as file:
             sobol_idx = pickle.load(file)
-        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0]) - 2 - opt.sobol, sobol_idx)
-        logger.info('sobol SA reduced dimension:%d' % (opt.sobol))
+        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0])-2 - opt.sobol, sobol_idx) 
+        logger.info('sobol SA reduced dimension:%d' % (opt.sobol) )
 
     if opt.pca != -1:
         normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
         logger.info('pca reduced dimension:%d' % (opt.pca))
-
-    logger.info('final input length:%d' % (len(normed_trainx[0])))
+        
+    logger.info('final input length:%d' % (len(normed_trainx[0]) ) )
     logger.info('Building network...')
     logger.info('Hidden layers = %r' % layers)
     logger.info('optimizer = %s' % (opt.optim))
