@@ -18,7 +18,7 @@ import torch
 sys.path.append('..')
 from mdlearn import fitting, visualize, metrics, preprocessing, validation, dataloader
 
-def sobol_analyze(model, X, logger, N=50000, **kwargs ):
+def sobol_analyze(model, X, logger, N=500000, **kwargs ):
     ''' INPUT:
             ::model::  the NN that takes X as input,
             ::X:: a 2D vector of input [batch_size, feature_length] 
@@ -30,6 +30,11 @@ def sobol_analyze(model, X, logger, N=50000, **kwargs ):
     upper = X.max(axis=0)
     lower = X.min(axis=0)
     bounds = [[i, j] for i,j in zip(lower, upper)] 
+    for i in range(len(bounds)):
+        if bounds[i][1]==0 :
+            bounds[i][1] = 0.01
+            break
+    # print(bounds)
     all_feature_problem = {
         'num_vars': X.shape[1],
         'names': ['x'+str(i) for i in range(X.shape[1])],
@@ -128,6 +133,7 @@ def main():
     logger.info('performing sobel sensitivity analysis...')
     result = sobol_analyze(model, validx, logger, 1000)
     sobel_idx = np.argsort(result['S1'][:-2])
+    logger.info(result['S1'][:-2])
     logger.info('saving model')
     with open(opt.output + '/sobol_S1.pkl', 'wb') as file:
         pickle.dump(result['S1'], file)
