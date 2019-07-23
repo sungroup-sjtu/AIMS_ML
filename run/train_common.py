@@ -11,7 +11,11 @@ import pickle
 logging.captureWarnings(True)
 
 import matplotlib
-matplotlib.rcParams.update({'font.size': 15})
+
+if sys.platform == 'linux':
+    print('Use non-interactive Agg backend for matplotlib on linux')
+    matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -67,10 +71,6 @@ def main():
     logger.addHandler(flog)
     logger.addHandler(clog)
 
-    if sys.platform == 'linux':
-        logger.info('Use non-interactive Agg backend for matplotlib on linux')
-        matplotlib.use('Agg')
-
     if opt.featrm == 'auto':
         logger.info('Automatically remove features')
         featrm = [14, 15, 17, 18, 19, 20, 21, 22]
@@ -97,52 +97,38 @@ def main():
         logger.warning("Partition file not found. Using auto-partition instead.")
         selector.partition(0.8, 0.1)
         selector.save(opt.output + '/part.txt')
-    trainx, trainy, trainname = selector.training_set()
-    validx, validy, validname = selector.validation_set()
-    logger.info('Training size = %d, Validation size = %d' % (len(trainx), len(validx)))
-    logger.info('X input example: (size=%d) %s' % (len(datax[0]), ','.join(map(str, datax[0]))))
-    logger.info('Y input example: (size=%d) %s' % (len(datay[0]), ','.join(map(str, datay[0]))))
-    logger.info('Normalizing...')
-    scaler = preprocessing.Scaler()
-    scaler.fit(trainx)
-    scaler.save(opt.output + '/scale.txt')
-    normed_trainx_all = scaler.transform(trainx)
-    normed_validx_all = scaler.transform(validx)
+    trainx_all, trainy, trainname = selector.training_set()
+    validx_all, validy, validname = selector.validation_set()
 
-    if opt.sobol != -1:
-        with open(opt.output + '/sobol_idx.pkl', 'rb') as file:
-            sobol_idx = pickle.load(file)
-        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0])-2 - opt.sobol, sobol_idx) 
-        logger.info('sobol SA reduced dimension:%d' % (opt.sobol) )
-
-    if opt.pca != -1:
-        normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
-        logger.info('pca reduced dimension:%d' % (opt.pca))
-
-    validy_ = validy.copy()  # for further convenience
-    trainy_ = trainy.copy()
-    if opt.gpu:  # store everything to GPU all at once
-        logger.info('Using GPU acceleration')
-        device = torch.device("cuda:0")
-        normed_trainx_all = torch.Tensor(normed_trainx_all).to(device)
-        trainy = torch.Tensor(trainy).to(device)
-        normed_validx_all = torch.Tensor(normed_validx_all).to(device)
-        validy = torch.Tensor(validy).to(device)
-    selection = torch.Tensor( [70, 27, 22, 38, 36, 35, 34, 33, 32, 42, 43, 49, 44, 45, 52, 56, 54, 12, 64, 62, 25, 9, 28, 66, 55, 59, 63, 37, 24, 41, 11, 21, 15,  6, 13, 19,  8, 69, 61, 53,  5, 46, 26, 60, 57, 30, 39, 17, 7,  4, 31,  2, 20, 40, 23, 51, 58, 47, 10,  1, 14,  1,  3, 68, 67, 65, 48, 18, 29, 50, 16,1, 1,  1]).to(device)
-
-    if opt.optim == 'sgd':
-        optimizer = torch.optim.SGD
-    elif opt.optim == 'adam':
-        optimizer = torch.optim.Adam
-    elif opt.optim == 'rms':
-        optimizer = torch.optim.RMSprop
-    elif opt.optim == 'ada':
-        optimizer = torch.optim.Adagrad
-
+    # select the most common
+    [unique_trainx, idx] = np.unique(trainx_all[:,:-2],axis=0,return_index=True)
+    appear_count = (unique_trainx != 0).sum(axis=0)
+    appear_sort = np.argsort(appear_count)
+    
     for threshold in range(5, 70, 5):
-        for _ in range(5): # repeat for three times 
-            normed_trainx = normed_trainx_all[:, selection < threshold ]
-            normed_validx = normed_validx_all[:, selection < threshold ]
+        for _ in range(5):
+            trainx = np.concatenate((trainx_all[:, appear_sort[-threshold: ]], trainx_all[:,-2:]), axis=1)
+            validx = np.concatenate((validx_all[:, appear_sort[-threshold: ]], validx_all[:,-2:]), axis=1)
+            logger.info('Training size = %d, Validation size = %d' % (len(trainx), len(validx)))
+            logger.info('X input example: (size=%d) %s' % (len(datax[0]), ','.join(map(str, datax[0]))))
+            logger.info('Y input example: (size=%d) %s' % (len(datay[0]), ','.join(map(str, datay[0]))))
+            logger.info('Normalizing...')
+            scaler = preprocessing.Scaler()
+            scaler.fit(trainx)
+            scaler.save(opt.output + '/scale.txt')
+            normed_trainx = scaler.transform(trainx)
+            normed_validx = scaler.transform(validx)
+
+            if opt.sobol != -1:
+                with open(opt.output + '/sobol_idx.pkl', 'rb') as file:
+                    sobol_idx = pickle.load(file)
+                normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0])-2 - opt.sobol, sobol_idx) 
+                logger.info('sobol SA reduced dimension:%d' % (opt.sobol) )
+
+            if opt.pca != -1:
+                normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
+                logger.info('pca reduced dimension:%d' % (opt.pca))
+                
             logger.info('final input length:%d' % (len(normed_trainx[0]) ) )
             logger.info('Building network...')
             logger.info('Hidden layers = %r' % layers)
@@ -151,7 +137,29 @@ def main():
             logger.info('Epochs = %s' % opt_epochs)
             logger.info('L2 penalty = %f' % opt.l2)
             logger.info('Batch size = %d' % opt.batch)
+
+            validy_ = validy.copy()  # for further convenience
+            trainy_ = trainy.copy()
             
+            if opt.gpu:  # store everything to GPU all at once
+                logger.info('Using GPU acceleration')
+                device = torch.device("cuda:0")
+                normed_trainx = torch.Tensor(normed_trainx).to(device)
+                trainy = torch.Tensor(trainy).to(device)
+                normed_validx = torch.Tensor(normed_validx).to(device)
+                validy = torch.Tensor(validy).to(device)
+
+
+
+            if opt.optim == 'sgd':
+                optimizer = torch.optim.SGD
+            elif opt.optim == 'adam':
+                optimizer = torch.optim.Adam
+            elif opt.optim == 'rms':
+                optimizer = torch.optim.RMSprop
+            elif opt.optim == 'ada':
+                optimizer = torch.optim.Adagrad
+
             model = fitting.TorchMLPRegressor(len(normed_trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, is_gpu=opt.gpu != 0,
                                             args_opt={'optimizer'   : optimizer,
                                                         'lr'          : opt.lr,
