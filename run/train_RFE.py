@@ -11,7 +11,11 @@ import pickle
 logging.captureWarnings(True)
 
 import matplotlib
-matplotlib.rcParams.update({'font.size': 15})
+
+if sys.platform == 'linux':
+    print('Use non-interactive Agg backend for matplotlib on linux')
+    matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -67,10 +71,6 @@ def main():
     logger.addHandler(flog)
     logger.addHandler(clog)
 
-    if sys.platform == 'linux':
-        logger.info('Use non-interactive Agg backend for matplotlib on linux')
-        matplotlib.use('Agg')
-
     if opt.featrm == 'auto':
         logger.info('Automatically remove features')
         featrm = [14, 15, 17, 18, 19, 20, 21, 22]
@@ -99,6 +99,12 @@ def main():
         selector.save(opt.output + '/part.txt')
     trainx, trainy, trainname = selector.training_set()
     validx, validy, validname = selector.validation_set()
+    selection = np.array([ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  4 , 7 , 9 , 1 ,12 ,14 , 1 , 1 , 1 , 1 , 3 ,1 , 1 , 1 , 1 , 1,  1, 1,  1,  6,  8,  5, 10 ,11, 13,  1,  1,  1,  1 , 1,  ])
+    threshold = 8
+    trainx = trainx[:,selection < threshold]
+    validx = validx[:,selection < threshold]
+
+
     logger.info('Training size = %d, Validation size = %d' % (len(trainx), len(validx)))
     logger.info('X input example: (size=%d) %s' % (len(datax[0]), ','.join(map(str, datax[0]))))
     logger.info('Y input example: (size=%d) %s' % (len(datay[0]), ','.join(map(str, datay[0]))))
@@ -106,8 +112,8 @@ def main():
     scaler = preprocessing.Scaler()
     scaler.fit(trainx)
     scaler.save(opt.output + '/scale.txt')
-    normed_trainx_all = scaler.transform(trainx)
-    normed_validx_all = scaler.transform(validx)
+    normed_trainx = scaler.transform(trainx)
+    normed_validx = scaler.transform(validx)
 
     if opt.sobol != -1:
         with open(opt.output + '/sobol_idx.pkl', 'rb') as file:
@@ -118,17 +124,25 @@ def main():
     if opt.pca != -1:
         normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
         logger.info('pca reduced dimension:%d' % (opt.pca))
+        
+    logger.info('final input length:%d' % (len(normed_trainx[0]) ) )
+    logger.info('Building network...')
+    logger.info('Hidden layers = %r' % layers)
+    logger.info('optimizer = %s' % (opt.optim))
+    logger.info('Learning rate = %s' % opt_lr)
+    logger.info('Epochs = %s' % opt_epochs)
+    logger.info('L2 penalty = %f' % opt.l2)
+    logger.info('Batch size = %d' % opt.batch)
 
     validy_ = validy.copy()  # for further convenience
     trainy_ = trainy.copy()
     if opt.gpu:  # store everything to GPU all at once
         logger.info('Using GPU acceleration')
         device = torch.device("cuda:0")
-        normed_trainx_all = torch.Tensor(normed_trainx_all).to(device)
+        normed_trainx = torch.Tensor(normed_trainx).to(device)
         trainy = torch.Tensor(trainy).to(device)
-        normed_validx_all = torch.Tensor(normed_validx_all).to(device)
+        normed_validx = torch.Tensor(normed_validx).to(device)
         validy = torch.Tensor(validy).to(device)
-    selection = torch.Tensor( [70, 27, 22, 38, 36, 35, 34, 33, 32, 42, 43, 49, 44, 45, 52, 56, 54, 12, 64, 62, 25, 9, 28, 66, 55, 59, 63, 37, 24, 41, 11, 21, 15,  6, 13, 19,  8, 69, 61, 53,  5, 46, 26, 60, 57, 30, 39, 17, 7,  4, 31,  2, 20, 40, 23, 51, 58, 47, 10,  1, 14,  1,  3, 68, 67, 65, 48, 18, 29, 50, 16,1, 1,  1]).to(device)
 
     if opt.optim == 'sgd':
         optimizer = torch.optim.SGD
@@ -139,85 +153,91 @@ def main():
     elif opt.optim == 'ada':
         optimizer = torch.optim.Adagrad
 
-    for threshold in range(5, 70, 5):
-        for _ in range(5): # repeat for three times 
-            normed_trainx = normed_trainx_all[:, selection < threshold ]
-            normed_validx = normed_validx_all[:, selection < threshold ]
-            logger.info('final input length:%d' % (len(normed_trainx[0]) ) )
-            logger.info('Building network...')
-            logger.info('Hidden layers = %r' % layers)
-            logger.info('optimizer = %s' % (opt.optim))
-            logger.info('Learning rate = %s' % opt_lr)
-            logger.info('Epochs = %s' % opt_epochs)
-            logger.info('L2 penalty = %f' % opt.l2)
-            logger.info('Batch size = %d' % opt.batch)
-            
-            model = fitting.TorchMLPRegressor(len(normed_trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, is_gpu=opt.gpu != 0,
-                                            args_opt={'optimizer'   : optimizer,
-                                                        'lr'          : opt.lr,
-                                                        'weight_decay': opt.l2
-                                                        }
-                                            )
+    model = fitting.TorchMLPRegressor(len(normed_trainx[0]), len(trainy[0]), layers, batch_size=opt.batch, is_gpu=opt.gpu != 0,
+                                      args_opt={'optimizer'   : optimizer,
+                                                'lr'          : opt.lr,
+                                                'weight_decay': opt.l2
+                                                }
+                                      )
 
-            model.init_session()
-            if opt.continuation:
-                cpt = opt.output + '/model.pt'
-                logger.info('Continue training from checkpoint %s' % (cpt))
-                model.load(cpt)
+    model.init_session()
+    if opt.continuation:
+        cpt = opt.output + '/model.pt'
+        logger.info('Continue training from checkpoint %s' % (cpt))
+        model.load(cpt)
 
-            logger.info('Optimizer = %s' % (optimizer))
+    logger.info('Optimizer = %s' % (optimizer))
 
-            header = 'Step Loss MeaSquE MeaSigE MeaUnsE MaxRelE Acc2% Acc5% Acc10%'.split()
-            logger.info('%-8s %8s %8s %8s %8s %8s %8s %8s %8s' % tuple(header))
+    header = 'Step Loss MeaSquE MeaSigE MeaUnsE MaxRelE Acc2% Acc5% Acc10%'.split()
+    logger.info('%-8s %8s %8s %8s %8s %8s %8s %8s %8s' % tuple(header))
 
-            mse_history = []
-            converge_times = 0
-            mse_min = None
-            model_saved = False
-            converged = False
-            all_epoch = sum(opt_epochs)
-            total_epoch = 0
+    mse_history = []
+    converge_times = 0
+    mse_min = None
+    model_saved = False
+    converged = False
+    all_epoch = sum(opt_epochs)
+    total_epoch = 0
 
-            for k, each_epoch in enumerate(opt_epochs):
-                # implement separated learning rate
-                model.reset_optimizer({'optimizer': optimizer, 'lr': opt_lr[k], 'weight_decay': opt.l2})
-                for i in range(each_epoch):
-                    total_epoch += 1
-                    loss = model.fit_epoch(normed_trainx, trainy)
-                    if total_epoch % opt.check == 0:
-                        predy = model.predict_batch(normed_validx)
-                        mse = metrics.mean_squared_error(validy_, predy)
-                        mse_history.append(mse)
-                        err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
-                            total_epoch,
-                            loss.data.cpu().numpy() if model.is_gpu else loss.data.numpy(),
-                            mse,
-                            metrics.mean_signed_error(validy_, predy) * 100,
-                            metrics.mean_unsigned_error(validy_, predy) * 100,
-                            metrics.max_relative_error(validy_, predy) * 100,
-                            metrics.accuracy(validy_, predy, 0.02) * 100,
-                            metrics.accuracy(validy_, predy, 0.05) * 100,
-                            metrics.accuracy(validy_, predy, 0.10) * 100)
+    for k, each_epoch in enumerate(opt_epochs):
+        # implement separated learning rate
+        model.reset_optimizer({'optimizer': optimizer, 'lr': opt_lr[k], 'weight_decay': opt.l2})
+        for i in range(each_epoch):
+            total_epoch += 1
+            loss = model.fit_epoch(normed_trainx, trainy)
+            if total_epoch % opt.check == 0:
+                predy = model.predict_batch(normed_validx)
+                mse = metrics.mean_squared_error(validy_, predy)
+                mse_history.append(mse)
+                err_line = '%-8i %8.2e %8.2e %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f' % (
+                    total_epoch,
+                    loss.data.cpu().numpy() if model.is_gpu else loss.data.numpy(),
+                    mse,
+                    metrics.mean_signed_error(validy_, predy) * 100,
+                    metrics.mean_unsigned_error(validy_, predy) * 100,
+                    metrics.max_relative_error(validy_, predy) * 100,
+                    metrics.accuracy(validy_, predy, 0.02) * 100,
+                    metrics.accuracy(validy_, predy, 0.05) * 100,
+                    metrics.accuracy(validy_, predy, 0.10) * 100)
 
-                        logger.info(err_line)
+                logger.info(err_line)
 
-                        if mse_min is None:
-                            mse_min = mse
-                        elif mse < mse_min:
-                            model.save(opt.output + '/model.pt')
-                            model_saved = True
-                            mse_min = mse
+                if mse_min is None:
+                    mse_min = mse
+                elif mse < mse_min:
+                    model.save(opt.output + '/model.pt')
+                    model_saved = True
+                    mse_min = mse
 
-                        if total_epoch > all_epoch * opt.minstop:
-                            conv, cur_conv = validation.is_converge(np.array(mse_history), nskip=25)
-                            if conv:
-                                logger.info('Model converge detected at epoch %d' % total_epoch)
-                                converge_times += 1
+                if total_epoch > all_epoch * opt.minstop:
+                    conv, cur_conv = validation.is_converge(np.array(mse_history), nskip=25)
+                    if conv:
+                        logger.info('Model converge detected at epoch %d' % total_epoch)
+                        converge_times += 1
 
-                            if converge_times >= opt.maxconv and cur_conv:
-                                logger.info('Model converged at epoch: %d' % total_epoch)
-                                converged = True
-                                break
+                    if converge_times >= opt.maxconv and cur_conv:
+                        logger.info('Model converged at epoch: %d' % total_epoch)
+                        converged = True
+                        break
+
+    if not converged:
+        logger.warning('Model not converged')
+
+    if not model_saved:
+        model.save(opt.output + '/model.pt')
+
+    visualizer = visualize.LinearVisualizer(trainy_.reshape(-1), model.predict_batch(normed_trainx).reshape(-1), trainname, 'train')
+    visualizer.append(validy_.reshape(-1), model.predict_batch(normed_validx).reshape(-1), validname, 'valid')
+    visualizer.dump(opt.output + '/fit.txt')
+    visualizer.dump_bad_molecules(opt.output + '/error-0.1.txt', threshold=0.1)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.2.txt', threshold=0.2)
+    logger.info('Fitting result saved')
+
+    if opt.visual:
+        visualizer.scatter_yy(savefig=opt.output + '/error-train.png', annotate_threshold=0, marker='x', lw=0.2, s=5)
+        visualizer.hist_error(savefig=opt.output + '/error-hist.png', label='valid', histtype='step', bins=50)
+
+        plt.show()
 
 
 def pca_nd(X, X_valid, n, logger):
