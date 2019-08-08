@@ -224,9 +224,10 @@ def main():
     visualizer = visualize.LinearVisualizer(trainy_.reshape(-1), model.predict_batch(normed_trainx).reshape(-1), trainname, 'training')
     visualizer.append(validy_.reshape(-1), model.predict_batch(normed_validx).reshape(-1), validname, 'validation')
     visualizer.dump(opt.output + '/fit.txt')
-    visualizer.dump_bad_molecules(opt.output + '/error-0.1.txt', 'validation', threshold=0.1)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.05.txt', 'validation', threshold=0.05)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.10.txt', 'validation', threshold=0.1)
     visualizer.dump_bad_molecules(opt.output + '/error-0.15.txt', 'validation', threshold=0.15)
-    visualizer.dump_bad_molecules(opt.output + '/error-0.2.txt', 'validation', threshold=0.2)
+    visualizer.dump_bad_molecules(opt.output + '/error-0.20.txt', 'validation', threshold=0.2)
     logger.info('Fitting result saved')
 
     if opt.visual:

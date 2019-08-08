@@ -5,6 +5,7 @@ import sys
 import argparse
 import base64
 import pandas as pd
+from rdkit import Chem
 
 sys.path.append('..')
 from mdlearn.teamfp.mol_io import Msd, Molecule
@@ -33,11 +34,32 @@ if __name__ == '__main__':
     fps = []
     for smiles in smiles_list:
         mol = read_msd('msdfiles/%s.msd' % base64.b64encode(smiles.encode()).decode())
+
+        ### Mark Rings
+        rd_mol = Chem.MolFromSmiles(smiles)
+        for rd_atom in rd_mol.GetAtoms():
+            if not rd_atom.IsInRing():
+                continue
+            atom = mol.atoms[rd_atom.GetIdx()]
+            if rd_atom.IsInRingSize(3):
+                atom.type_ring = atom.type + '_r3'
+            elif rd_atom.IsInRingSize(4):
+                atom.type_ring = atom.type + '_r4'
+            elif rd_atom.IsInRingSize(5):
+                atom.type_ring = atom.type + '_r5'
+            elif rd_atom.IsInRingSize(6):
+                atom.type_ring = atom.type + '_r6'
+            elif rd_atom.IsInRingSize(7) or rd_atom.IsInRingSize(8):
+                atom.type_ring = atom.type + '_r78'
+            else:
+                atom.type_ring = atom.type + '_r>8'
+        ###
+
         fp = TeamFP()
-        fp.calc_molecule(mol, radius_list=[0,1])
+        fp.calc_molecule(mol, radius_list=[0], dihedral=False)
         fps.append(fp)
 
-    fps_new = TeamFP.merge_team_fps(fps, fp_time_limit=40)
+    fps_new = TeamFP.merge_team_fps(fps, fp_time_limit=200)
 
     with open(os.path.join(opt.output, 'fp_team'), 'w') as f:
         for i, fp in enumerate(fps_new):

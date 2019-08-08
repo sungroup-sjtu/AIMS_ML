@@ -28,6 +28,7 @@ class Msd():
                 atom = Atom()
                 atom.name = words[1]
                 atom.type = words[3]
+                atom.type_ring = words[3]
                 atom.element = ''.join([c for c in words[1] if not c.isdigit()])
                 atoms.append(atom)
                 continue
