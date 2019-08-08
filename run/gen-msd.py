@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import argparse
 import base64
 import pandas as pd
@@ -19,6 +20,7 @@ def main():
     if not os.path.exists(opt.output):
         os.mkdir(opt.output)
 
+    sys.path.append('../../ms-tools')
     from mstools.utils import create_mol_from_smiles
     from mstools.wrapper.dff import DFF
     # dff = DFF('/home/gongzheng/apps/DFF/Developing')
