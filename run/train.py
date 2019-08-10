@@ -5,12 +5,14 @@ import sys
 import argparse
 import logging
 import shutil
+from pathlib import Path
 from sklearn.decomposition import PCA
 import pickle
 
 logging.captureWarnings(True)
 
 import matplotlib
+
 matplotlib.rcParams.update({'font.size': 15})
 import matplotlib.pyplot as plt
 import numpy as np
@@ -85,7 +87,7 @@ def main():
 
     # Store fingerprint identifier files
     for fp in opt.fp.split(','):
-        if os.path.exists(fp + '.idx'):
+        if os.path.exists(fp + '.idx') and Path(fp).parent.absolute() != Path(opt.output).absolute():
             shutil.copy(fp + '.idx', opt.output)
 
     logger.info('Selecting data...')
@@ -113,14 +115,14 @@ def main():
     if opt.sobol != -1:
         with open(opt.output + '/sobol_idx.pkl', 'rb') as file:
             sobol_idx = pickle.load(file)
-        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0])-2 - opt.sobol, sobol_idx) 
-        logger.info('sobol SA reduced dimension:%d' % (opt.sobol) )
+        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0]) - 2 - opt.sobol, sobol_idx)
+        logger.info('sobol SA reduced dimension:%d' % (opt.sobol))
 
     if opt.pca != -1:
         normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
         logger.info('pca reduced dimension:%d' % (opt.pca))
-        
-    logger.info('final input length:%d' % (len(normed_trainx[0]) ) )
+
+    logger.info('final input length:%d' % (len(normed_trainx[0])))
     logger.info('Building network...')
     logger.info('Hidden layers = %r' % layers)
     logger.info('optimizer = %s' % (opt.optim))
