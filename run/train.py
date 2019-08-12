@@ -5,12 +5,14 @@ import sys
 import argparse
 import logging
 import shutil
+from pathlib import Path
 from sklearn.decomposition import PCA
 import pickle
 
 logging.captureWarnings(True)
 
 import matplotlib
+
 matplotlib.rcParams.update({'font.size': 15})
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,11 +32,11 @@ def main():
     parser.add_argument('-l', '--layer', default='16,16', type=str, help='Size of hidden layers')
     parser.add_argument('--visual', default=1, type=int, help='Visualzation data')
     parser.add_argument('--gpu', default=1, type=int, help='Using gpu')
-    parser.add_argument('--epoch', default="200,400,400", type=str, help='Number of epochs')
-    parser.add_argument('--batch', default=500, type=int, help='Batch size')
+    parser.add_argument('--epoch', default="500,1000,1000", type=str, help='Number of epochs')
+    parser.add_argument('--batch', default=1000, type=int, help='Batch size')
     parser.add_argument('--lr', default="0.01,0.001,0.0001", type=str, help='Initial learning rate')
     parser.add_argument('--l2', default=0.000, type=float, help='L2 Penalty')
-    parser.add_argument('--check', default=20, type=int, help='Number of epoch that do convergence check')
+    parser.add_argument('--check', default=50, type=int, help='Number of epoch that do convergence check')
     parser.add_argument('--minstop', default=0.2, type=float, help='Minimum fraction of step to stop')
     parser.add_argument('--maxconv', default=2, type=int, help='Times of true convergence that makes a stop')
     parser.add_argument('--featrm', default='', type=str, help='Remove features')
@@ -85,7 +87,7 @@ def main():
 
     # Store fingerprint identifier files
     for fp in opt.fp.split(','):
-        if os.path.exists(fp + '.idx'):
+        if os.path.exists(fp + '.idx') and Path(fp).parent.absolute() != Path(opt.output).absolute():
             shutil.copy(fp + '.idx', opt.output)
 
     logger.info('Selecting data...')
@@ -113,14 +115,14 @@ def main():
     if opt.sobol != -1:
         with open(opt.output + '/sobol_idx.pkl', 'rb') as file:
             sobol_idx = pickle.load(file)
-        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0])-2 - opt.sobol, sobol_idx) 
-        logger.info('sobol SA reduced dimension:%d' % (opt.sobol) )
+        normed_trainx, normed_validx = sobol_reduce(normed_trainx, normed_validx, len(normed_trainx[0]) - 2 - opt.sobol, sobol_idx)
+        logger.info('sobol SA reduced dimension:%d' % (opt.sobol))
 
     if opt.pca != -1:
         normed_trainx, normed_validx, _ = pca_nd(normed_trainx, normed_validx, len(normed_trainx[0]) - opt.pca, logger)
         logger.info('pca reduced dimension:%d' % (opt.pca))
-        
-    logger.info('final input length:%d' % (len(normed_trainx[0]) ) )
+
+    logger.info('final input length:%d' % (len(normed_trainx[0])))
     logger.info('Building network...')
     logger.info('Hidden layers = %r' % layers)
     logger.info('optimizer = %s' % (opt.optim))

@@ -2,66 +2,130 @@
 
 import os
 
-# WYZ dataset
-# cmd1 = 'python gen-fp.py -i ../data/alkanes-npt-2018v3.txt -e morgan1,simple -o fp --svg'
-# cmd2 = 'python split-data.py -i ../data/alkanes-npt-2018v3.txt -o fp'
-# cmd3 = 'python train.py -i ../data/alkanes-npt-2018v3.txt -t Cp -f fp/fp_morgan1,fp/fp_simple -p fp/part-1.txt -o out'
-# cmd4 = 'python predict.py -d out -e predefinedmorgan1,simple -i C1CCCCCCC1,314,1'
-
-# NIST Tc for CH
-cmd1 = 'python gen-fp.py -i ../data/nist-CH-tc.txt -e morgan1,simple -o fp-ch-tc'
-cmd2 = 'python split-data.py -i ../data/nist-CH-tc.txt -o fp-ch-tc'
-cmd3 = 'python train.py -i ../data/nist-CH-tc.txt -t tc -f fp-ch-tc/fp_morgan1,fp-ch-tc/fp_simple -o out-ch-tc'
-cmd4 = 'python predict.py -d out-ch-tc -e predefinedmorgan1,simple -i C1CCCCCCC1'
-
-# NIST Tvap for CH
-# cmd1 = 'python gen-fp.py -i ../data/nist-CH-tvap.txt -e morgan1,simple -o fp-ch-tvap'
-# cmd2 = 'python split-data.py -i ../data/nist-CH-tvap.txt -o fp-ch-tvap'
-# cmd3 = 'python train.py -i ../data/nist-CH-tvap.txt -t tvap -f fp-ch-tvap/fp_morgan1,fp-ch-tvap/fp_simple -o out-ch-tvap'
-
 # NIST Tc for All
-# cmd1 = 'python gen-fp.py -i ../data/nist-All-tc.txt -e morgan1,simple -o fp-all-tc'
-# cmd2 = 'python split-data.py -i ../data/nist-All-tc.txt -o fp-all-tc'
-# cmd3 = 'python train.py -i ../data/nist-All-tc.txt -t tc -f fp-all-tc/fp_morgan1,fp-all-tc/fp_simple -o out-all-tc'
+# cmd1 = 'python gen-fp.py -i ../data/nist-All-tc.txt -e morgan1,simple -o out-all-tc'
+# cmd2 = 'python split-data.py -i ../data/nist-All-tc.txt -o out-all-tc'
+# cmd3 = 'python train.py -i ../data/nist-All-tc.txt -t tc -f out-all-tc/fp_morgan1,out-all-tc/fp_simple -o out-all-tc/out'
 
 # NIST Tvap for All
-# cmd1 = 'python gen-fp.py -i ../data/nist-All-tvap.txt -e morgan1,simple -o fp-all-tvap'
-# cmd2 = 'python split-data.py -i ../data/nist-All-tvap.txt -o fp-all-tvap'
-# cmd3 = 'python train.py -i ../data/nist-All-tvap.txt -t tvap -f fp-all-tvap/fp_morgan1,fp-all-tvap/fp_simple -o out-all-tvap'
+# cmd1 = 'python gen-fp.py -i ../data/nist-All-tvap.txt -e morgan1,simple -o out-all-tvap'
+# cmd2 = 'python split-data.py -i ../data/nist-All-tvap.txt -o out-all-tvap'
+# cmd3 = 'python train.py -i ../data/nist-All-tvap.txt -t tvap -f out-all-tvap/fp_morgan1,out-all-tvap/fp_simple -o out-all-tvap/out'
 
 # Simu density for CH
-# cmd1 = 'python gen-fp.py -i ../data/result-ML-CH-npt.txt -e morgan1,simple -o fp-ch-npt'
-# cmd2 = 'python split-data.py -i ../data/result-ML-CH-npt.txt -o fp-ch-npt'
-# cmd3 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f fp-ch-npt/fp_morgan1,fp-ch-npt/fp_simple -p fp-ch-npt/part-1.txt -o out-ch-density'
-
+cmd1 = 'python gen-fp.py -i ../data/result-ML-CH-npt.txt -e morgan1,simple -o out-ch-density'
+cmd2 = 'python split-data.py -i ../data/result-ML-CH-npt.txt -o out-ch-density'
+cmd311 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-1.txt -o out-ch-density/11'
+cmd312 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-1.txt -o out-ch-density/12'
+cmd313 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-1.txt -o out-ch-density/13'
+cmd314 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-1.txt -o out-ch-density/14'
+cmd321 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-2.txt -o out-ch-density/21'
+cmd322 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-2.txt -o out-ch-density/22'
+cmd323 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-2.txt -o out-ch-density/23'
+cmd324 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-2.txt -o out-ch-density/24'
+cmd331 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-3.txt -o out-ch-density/31'
+cmd332 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-3.txt -o out-ch-density/32'
+cmd333 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-3.txt -o out-ch-density/33'
+cmd334 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-3.txt -o out-ch-density/34'
+cmd341 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-4.txt -o out-ch-density/41'
+cmd342 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-4.txt -o out-ch-density/42'
+cmd343 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-4.txt -o out-ch-density/43'
+cmd344 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-4.txt -o out-ch-density/44'
+cmd351 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-5.txt -o out-ch-density/51'
+cmd352 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-5.txt -o out-ch-density/52'
+cmd353 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-5.txt -o out-ch-density/53'
+cmd354 = 'python train.py -i ../data/result-ML-CH-npt.txt -t density -f out-ch-density/fp_morgan1,out-ch-density/fp_simple -p out-ch-density/part-5.txt -o out-ch-density/54'
+# Simu einter for CH
+cmd1 = 'python gen-fp.py -i ../data/result-ML-CH-npt.txt -e morgan1,simple -o out-ch-einter'
+cmd2 = 'python split-data.py -i ../data/result-ML-CH-npt.txt -o out-ch-einter'
+cmd311 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-1.txt -o out-ch-einter/11'
+cmd312 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-1.txt -o out-ch-einter/12'
+cmd313 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-1.txt -o out-ch-einter/13'
+cmd314 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-1.txt -o out-ch-einter/14'
+cmd321 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-2.txt -o out-ch-einter/21'
+cmd322 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-2.txt -o out-ch-einter/22'
+cmd323 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-2.txt -o out-ch-einter/23'
+cmd324 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-2.txt -o out-ch-einter/24'
+cmd331 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-3.txt -o out-ch-einter/31'
+cmd332 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-3.txt -o out-ch-einter/32'
+cmd333 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-3.txt -o out-ch-einter/33'
+cmd334 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-3.txt -o out-ch-einter/34'
+cmd341 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-4.txt -o out-ch-einter/41'
+cmd342 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-4.txt -o out-ch-einter/42'
+cmd343 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-4.txt -o out-ch-einter/43'
+cmd344 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-4.txt -o out-ch-einter/44'
+cmd351 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-5.txt -o out-ch-einter/51'
+cmd352 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-5.txt -o out-ch-einter/52'
+cmd353 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-5.txt -o out-ch-einter/53'
+cmd354 = 'python train.py -i ../data/result-ML-CH-npt.txt -t einter -f out-ch-einter/fp_morgan1,out-ch-einter/fp_simple -p out-ch-einter/part-5.txt -o out-ch-einter/54'
 # Simu Cp for CH
-# cmd1 = 'python gen-fp.py -i ../data/result-ML-CH-cp.txt -e morgan1,simple -o fp-ch-cp'
-# cmd2 = 'python split-data.py -i ../data/result-ML-CH-cp.txt -o fp-ch-cp'
-# cmd3 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f fp-ch-cp/fp_morgan1,fp-ch-cp/fp_simple -p fp-ch-cp/part-1.txt -o out-ch-cp'
-
-# Simu Hvap for CH
-# cmd1 = 'python gen-fp.py -i ../data/result-ML-CH-hvap.txt -e morgan1,simple -o fp-ch-hvap'
-# cmd2 = 'python split-data.py -i ../data/result-ML-CH-hvap.txt -o fp-ch-hvap'
-# cmd3 = 'python train.py -i ../data/result-ML-CH-hvap.txt -t hvap -f fp-ch-hvap/fp_morgan1,fp-ch-hvap/fp_simple -p fp-ch-hvap/part-1.txt -o out-ch-hvap'
+cmd1 = 'python gen-fp.py -i ../data/result-ML-CH-cp.txt -e morgan1,simple -o out-ch-cp'
+cmd2 = 'python split-data.py -i ../data/result-ML-CH-cp.txt -o out-ch-cp'
+cmd311 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-1.txt -o out-ch-cp/11'
+cmd312 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-1.txt -o out-ch-cp/12'
+cmd313 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-1.txt -o out-ch-cp/13'
+cmd314 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-1.txt -o out-ch-cp/14'
+cmd321 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-2.txt -o out-ch-cp/21'
+cmd322 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-2.txt -o out-ch-cp/22'
+cmd323 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-2.txt -o out-ch-cp/23'
+cmd324 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-2.txt -o out-ch-cp/24'
+cmd331 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-3.txt -o out-ch-cp/31'
+cmd332 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-3.txt -o out-ch-cp/32'
+cmd333 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-3.txt -o out-ch-cp/33'
+cmd334 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-3.txt -o out-ch-cp/34'
+cmd341 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-4.txt -o out-ch-cp/41'
+cmd342 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-4.txt -o out-ch-cp/42'
+cmd343 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-4.txt -o out-ch-cp/43'
+cmd344 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-4.txt -o out-ch-cp/44'
+cmd351 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-5.txt -o out-ch-cp/51'
+cmd352 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-5.txt -o out-ch-cp/52'
+cmd353 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-5.txt -o out-ch-cp/53'
+cmd354 = 'python train.py -i ../data/result-ML-CH-cp.txt -t cp -f out-ch-cp/fp_morgan1,out-ch-cp/fp_simple -p out-ch-cp/part-5.txt -o out-ch-cp/54'
 
 # Simu density for All
-# cmd1 = 'python gen-fp.py -i ../data/result-ML-All-npt.txt -e morgan1,simple -o fp-all-npt'
-# cmd2 = 'python split-data.py -i ../data/result-ML-All-npt.txt -o fp-all-npt'
-# cmd3 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f fp-all-npt/fp_morgan1,fp-all-npt/fp_simple -p fp-all-npt/part-1.txt -o out-all-density'
-
-# Simu Cp for All
-# cmd1 = 'python gen-fp.py -i ../data/result-ML-All-cp.txt -e morgan1,simple -o fp-all-cp'
-# cmd2 = 'python split-data.py -i ../data/result-ML-All-cp.txt -o fp-all-cp'
-# cmd3 = 'python train.py -i ../data/result-ML-All-cp.txt -t cp -f fp-all-cp/fp_morgan1,fp-all-cp/fp_simple -p fp-all-cp/part-1.txt -o out-all-cp'
-
-# Simu Hvap for All
-# cmd1 = 'python gen-fp.py -i ../data/result-ML-All-hvap.txt -e morgan1,simple -o fp-all-hvap'
-# cmd2 = 'python split-data.py -i ../data/result-ML-All-hvap.txt -o fp-all-hvap'
-# cmd3 = 'python train.py -i ../data/result-ML-All-hvap.txt -t hvap -f fp-all-hvap/fp_morgan1,fp-all-hvap/fp_simple -p fp-all-hvap/part-1.txt -o out-all-hvap'
-
+cmd1 = 'python gen-fp.py -i ../data/result-ML-All-npt.txt -e morgan1,simple -o out-all-density'
+cmd2 = 'python split-data.py -i ../data/result-ML-All-npt.txt -o out-all-density'
+cmd311 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-1.txt -o out-all-density/11'
+cmd312 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-1.txt -o out-all-density/12'
+cmd313 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-1.txt -o out-all-density/13'
+cmd314 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-1.txt -o out-all-density/14'
+cmd321 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-2.txt -o out-all-density/21'
+cmd322 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-2.txt -o out-all-density/22'
+cmd323 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-2.txt -o out-all-density/23'
+cmd324 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-2.txt -o out-all-density/24'
+cmd331 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-3.txt -o out-all-density/31'
+cmd332 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-3.txt -o out-all-density/32'
+cmd333 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-3.txt -o out-all-density/33'
+cmd334 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-3.txt -o out-all-density/34'
+cmd341 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-4.txt -o out-all-density/41'
+cmd342 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-4.txt -o out-all-density/42'
+cmd343 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-4.txt -o out-all-density/43'
+cmd344 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-4.txt -o out-all-density/44'
+cmd351 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-5.txt -o out-all-density/51'
+cmd352 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-5.txt -o out-all-density/52'
+cmd353 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-5.txt -o out-all-density/53'
+cmd354 = 'python train.py -i ../data/result-ML-All-npt.txt -t density -f out-all-density/fp_morgan1,out-all-density/fp_simple -p out-all-density/part-5.txt -o out-all-density/54'
 
 if __name__ == '__main__':
     os.system(cmd1)
     os.system(cmd2)
-    os.system(cmd3)
-    os.system(cmd4)
+    os.system(cmd311)
+    os.system(cmd312)
+    os.system(cmd313)
+    os.system(cmd314)
+    os.system(cmd321)
+    os.system(cmd322)
+    os.system(cmd323)
+    os.system(cmd324)
+    os.system(cmd331)
+    os.system(cmd332)
+    os.system(cmd333)
+    os.system(cmd334)
+    os.system(cmd341)
+    os.system(cmd342)
+    os.system(cmd343)
+    os.system(cmd344)
+    os.system(cmd351)
+    os.system(cmd352)
+    os.system(cmd353)
+    os.system(cmd354)
