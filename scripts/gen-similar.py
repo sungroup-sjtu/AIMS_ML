@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 
-import os
 import sys
 import hashlib
 import random
@@ -84,7 +83,7 @@ if __name__ == '__main__':
         if len(py_mol.sssr) >= 2 and py_mol.OBMol.NumHvyAtoms() >= 16:
             smiles_base = reduce_mol_ring(smiles)
 
-        s_list = enlarge_mol(smiles_base, substitutes=['CC', 'C(C)=C', 'C(C)CC', 'C1CCCC1'], atom_limit=19, max_sample_per_substitute=3)
+        s_list = enlarge_mol(smiles_base, substitutes=['CC', 'C1CC1', 'C(C)CC', 'C=C(C)C', 'C(C)=C'], atom_limit=19, max_sample_per_substitute=3)
 
         for i, s in enumerate(s_list):
             smiles_dict[f'{md5sum8(smiles)}-{i + 1}'] = pybel.readstring('smi', s)

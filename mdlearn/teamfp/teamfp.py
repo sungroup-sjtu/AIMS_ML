@@ -18,24 +18,31 @@ class TeamFP(Fingerprint):
 
     def calc_atom(self, atom: Atom, radius: int) -> str:
         if radius == 0:
-            return '0.' + atom.type
+            return '0.' + atom.type_ring
 
         if radius == 1:
-            types_neigh = [self.replace_type_neigh(a.type) for a in atom.neighbours]
+            types_neigh = [self.replace_type_neigh(a.type_ring) for a in atom.neighbours]
             types_neigh.sort()
-            return '1.' + ','.join([self.replace_type_center(atom.type)] + types_neigh)
+            return '1.' + ','.join([self.replace_type_center(atom.type_ring)] + types_neigh)
 
         if radius == 2:
             raise Exception('radius > 1 not supported')
 
-    def calc_molecule(self, molecule: Molecule, radius_list: [int]):
+    def calc_molecule(self, molecule: Molecule, radius_list: [int], dihedral=False):
         fp = {}
         for r in radius_list:
             for atom in molecule.atoms:
                 idx = self.calc_atom(atom, r)
                 if idx not in fp:
                     fp[idx] = 0
+                fp[idx] += 1
 
+        if dihedral:
+            molecule.calc_dihedrals()
+            for dih in molecule.dihedrals:
+                idx = 'd.' + dih.type_eqt
+                if idx not in fp:
+                    fp[idx] = 0
                 fp[idx] += 1
 
         self.bit_count = fp
@@ -55,7 +62,9 @@ class TeamFP(Fingerprint):
             for k, v in fp.bit_count.items():
                 idx_times[k] += 1
         print('%i identifiers total' % (len(idx_times)))
-        print(sorted(idx_times.items(), key=lambda x: x[1], reverse=True))
+        # print(sorted(idx_times.items(), key=lambda x: x[1], reverse=True))
+        for k, v in sorted(idx_times.items(), key=lambda x: x[1], reverse=True):
+            print(k, v)
 
         ### Keep all the idx with radius equal to 0
         idx_list = [k for (k, v) in idx_times.items() if k.startswith('0') or v >= fp_time_limit]

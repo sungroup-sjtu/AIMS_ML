@@ -100,10 +100,18 @@ def _getMorganEnv(mol, atomId, radius, baseRad, aromaticColor, ringColor, center
             # drawopt.atomLabels[amap[aidx]] = '*'
             submol.GetAtomWithIdx(amap[aidx]).SetAtomicNum(0)
             submol.GetAtomWithIdx(amap[aidx]).UpdatePropertyCache()
+    bidx_to_use = []
+    for aidx in atomsToUse:
+        a = mol.GetAtomWithIdx(aidx)
+        for b in a.GetBonds():
+            bidx_to_use.append(b.GetIdx())
     color = extraColor
     for bid in submol.GetBonds():
         bidx = bid.GetIdx()
         if bidx not in envSubmol:
-            bondcolors[bidx] = color
-            highlightBonds.append(bidx)
+            if bidx not in bidx_to_use:
+                bondcolors[bidx] = color
+            else:
+                bondcolors[bidx] = (0.6, 0.6, 0.6)
+        highlightBonds.append(bidx)
     return FingerprintEnv(submol, highlightAtoms, atomcolors, highlightBonds, bondcolors, highlightRadii)
