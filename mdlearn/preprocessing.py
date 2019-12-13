@@ -4,6 +4,7 @@
 import sklearn.model_selection
 import sklearn.preprocessing
 import numpy as np
+import sys
 
 
 def separate(array, frac):
@@ -49,6 +50,51 @@ class Selector:
         self.validation_index[valid_num] = True
         self.test_index[test_num] = True
 
+    def partition_smiles_list(self, smiles_list_training):
+        self.training_index = np.ones(self.length, dtype=bool)
+        self.validation_index = np.zeros(self.length, dtype=bool)
+        self.test_index = np.zeros(self.length, dtype=bool)
+        for i, smiles in enumerate(self.data[0]):
+            if smiles not in smiles_list_training:
+                self.training_index[i] = False
+                self.validation_index[i] = True
+
+    def similarity_partition(self, cutoff=10.0):
+        def similarity_comparison(smiles1, smiles2):
+            from rdkit.Chem import AllChem as Chem
+            from rdkit import DataStructs
+            rdk_mol1 = Chem.MolFromSmiles(smiles1)
+            fp1 = Chem.GetMorganFingerprintAsBitVect(rdk_mol1, 2)
+            rdk_mol2 = Chem.MolFromSmiles(smiles2)
+            fp2 = Chem.GetMorganFingerprintAsBitVect(rdk_mol2, 2)
+            # print(smiles1, smiles2)
+            return DataStructs.DiceSimilarity(fp1, fp2)
+        # a switch function of similarity_comparison
+        def similarity_score(smiles1, smiles2):
+            a = similarity_comparison(smiles1, smiles2)
+            if a < 0.6:
+                return 0.
+            else:
+                return (a - 0.6) / 0.4
+        def get_similarity_score(smiles, smiles_list):
+            score = 0.
+            for s in smiles_list:
+                score += similarity_score(smiles, s)
+            return score
+        self.training_index = np.ones(self.length, dtype=bool)
+        self.validation_index = np.zeros(self.length, dtype=bool)
+        self.test_index = np.zeros(self.length, dtype=bool)
+
+        smiles_list = []
+        for i, smiles in enumerate(self.data[0]):
+            sys.stdout.write('\r%i / %i' % (i, len(self.data[0])))
+            if get_similarity_score(smiles, smiles_list) < cutoff:
+                smiles_list.append(smiles)
+            else:
+                self.training_index[i] = False
+                self.validation_index[i] = True
+        print('\n%i molecules in training set' % len(smiles_list))
+
     def kfold_partition(self, train_valid_size, fold=5):
         self.kfold = fold
         self.kfold_train_indexes = [np.ones(self.length, dtype=bool) for i in range(fold)]
@@ -64,6 +110,7 @@ class Selector:
 
         for k in range(fold):
             valid_num, train_valid_num = separate(train_valid_num, 1 / (fold - k))
+            print(valid_num)
             self.kfold_valid_indexes[k][valid_num] = True
             self.kfold_train_indexes[k][valid_num] = False
             self.kfold_train_indexes[k][test_num] = False

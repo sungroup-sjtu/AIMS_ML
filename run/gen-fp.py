@@ -24,8 +24,11 @@ def main():
     if not os.path.exists(opt.output):
         os.mkdir(opt.output)
 
-    df = pd.read_table(opt.input, sep='\s+', header=0)
-    smiles_list = df.SMILES.unique().tolist()
+    smiles_list = []
+    for file in opt.input.split(','):
+        df = pd.read_csv(file, sep='\s+', header=0)
+        smiles_list += df.SMILES.unique().tolist()
+    smiles_list = list(set(smiles_list))
 
     encoders = opt.encoder.split(',')
     encoder = encoding.FPEncoder(encoders, fp_name=opt.output + '/fp', save_svg=opt.svg)
