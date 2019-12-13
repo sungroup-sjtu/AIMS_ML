@@ -32,7 +32,7 @@ def main():
     parser.add_argument('-l', '--layer', default='16,16', type=str, help='Size of hidden layers')
     parser.add_argument('--visual', default=1, type=int, help='Visualzation data')
     parser.add_argument('--gpu', default=1, type=int, help='Using gpu')
-    parser.add_argument('--epoch', default="500,1000,1000", type=str, help='Number of epochs')
+    parser.add_argument('--epoch', default="500,2000,2500", type=str, help='Number of epochs')
     parser.add_argument('--batch', default=1000, type=int, help='Batch size')
     parser.add_argument('--lr', default="0.01,0.001,0.0001", type=str, help='Initial learning rate')
     parser.add_argument('--l2', default=0.000, type=float, help='L2 Penalty')

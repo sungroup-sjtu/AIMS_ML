@@ -33,7 +33,7 @@ source activate ml
 
 * Calculate fingerprints
 ```
-./gen-fp.py -i ../data/nist-CH-tc.txt -e morgan1,simple -o fp
+./gen-fp.py -i ../data/nist-CH-tc.txt -e morgan1-200,topological-500,simple -o fp
 ```
 * Split data to train/validate datasets using 5-Fold cross-validation
 ```
@@ -41,11 +41,11 @@ source activate ml
 ```
 * Train the model  
 ```
-./train.py -i ../data/nist-CH-tc.txt -t tc -f fp/fp_morgan1,fp/fp_simple -p fp/part-1.txt -o out
+./train.py -i ../data/nist-CH-tc.txt -t tc -f fp/fp_morgan1-200,fp/fp_simple -p fp/part-1.txt -o out
 ```
 * Predict property for new molecules
 ```
-./predict.py -d out -e predefinedmorgan1,simple -i CCCCCC
+./predict.py -d out -e predefinedmorgan1-200,simple -i CCCCCC
 ```
 *Note that if you train the model with **morgan1** or **morgan** fingerprint, you should use **predefinedmorgan1** or **predefinedmorgan** to predict*
 
