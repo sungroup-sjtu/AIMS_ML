@@ -165,7 +165,7 @@ class TopologicalCountIndexer(Fingerprint):
 
             rdk_mol = Chem.MolFromSmiles(smiles)
             info = dict()
-            rdkfp: UIntSparseIntVect = Chem.UnfoldedRDKFingerprintCountBased(rdk_mol)
+            rdkfp: UIntSparseIntVect = Chem.UnfoldedRDKFingerprintCountBased(rdk_mol, maxPath=7)
             rdkfp_list.append(rdkfp)
             identifiers += list(rdkfp.GetNonzeroElements().keys())
 

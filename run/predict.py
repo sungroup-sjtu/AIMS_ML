@@ -23,6 +23,8 @@ def main():
     smiles_list = []
     t_list = []
     p_list = []
+    value_list = []
+    uncertainty_list = []
 
     if not opt.batch:
         words = opt.input.split(',')
@@ -41,12 +43,24 @@ def main():
                     t_list.append(float(words[1]))
                 if len(words) >= 3:
                     p_list.append(float(words[2]))
+                if len(words) >= 4:
+                    value_list.append(float(words[3]))
+                if len(words) >= 5:
+                    uncertainty_list.append(float(words[4]))
 
     datay = ml_predict(opt.dir, smiles_list, t_list=t_list, p_list=p_list, encoders=encoders)
 
-    print('SMILES\tT\tP\tResult')
-    for s_, t_, p_, y_ in zip(smiles_list, t_list or [0] * len(smiles_list), p_list or [0] * len(smiles_list), datay):
-        print('%s\t%g\t%g\t%.3g' % (s_, t_, p_, y_))
+    f = open('predict.txt', 'w')
+    if value_list == []:
+        f.write('SMILES\tT\tP\tResult\n')
+        for s_, t_, p_, y_ in zip(smiles_list, t_list or [0] * len(smiles_list), p_list or [0] * len(smiles_list),
+                                  datay):
+            f.write('%s\t%g\t%g\t%.3g\n' % (s_, t_, p_, y_))
+    else:
+        f.write('SMILES\tT\tP\tResult\tValue_exp\tUncertainty_exp\n')
+        for s_, t_, p_, y_, v_, u_ in zip(smiles_list, t_list or [0] * len(smiles_list), p_list or [0] * len(smiles_list),
+                                  datay, value_list, uncertainty_list):
+            f.write('%s\t%g\t%g\t%.3g\t%.3g\t%.3g\n' % (s_, t_, p_, y_, v_, u_))
 
 
 if __name__ == '__main__':
