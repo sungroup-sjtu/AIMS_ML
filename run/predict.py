@@ -58,8 +58,8 @@ def main():
             f.write('%s\t%g\t%g\t%.3g\n' % (s_, t_, p_, y_))
     elif uncertainty_list == []:
         f.write('SMILES\tT\tP\tResult\tValue_exp\n')
-        for s_, t_, p_, y_, v_, u_ in zip(smiles_list, t_list or [0] * len(smiles_list), p_list or [0] * len(smiles_list),
-                                  datay, value_list, uncertainty_list):
+        for s_, t_, p_, y_, v_ in zip(smiles_list, t_list or [0] * len(smiles_list), p_list or [0] * len(smiles_list),
+                                  datay, value_list):
             f.write('%s\t%g\t%g\t%.3g\t%.3g\n' % (s_, t_, p_, y_, v_))
     else:
         f.write('SMILES\tT\tP\tResult\tValue_exp\tUncertainty_exp\n')
