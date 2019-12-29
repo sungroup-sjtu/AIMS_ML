@@ -22,6 +22,9 @@ class FPEncoder:
             elif len(encoder.split('-')) == 2:
                 self.Indexers.append(encoders_dict.get(encoder.split('-')[0]))
                 self.IndexerPara.append(int(encoder.split('-')[1]))
+            elif len(encoder.split('-')) == 3:
+                self.Indexers.append(encoders_dict.get(encoder.split('-')[0]))
+                self.IndexerPara.append([int(encoder.split('-')[1]), int(encoder.split('-')[2])])
         if None in self.Indexers:
             raise Exception('Available encoders: %s' % encoders_dict.keys())
 
@@ -45,8 +48,10 @@ class FPEncoder:
         for i, Indexer in enumerate(self.Indexers):
             if self.IndexerPara[i] is None:
                 idxer = Indexer()
-            else:
-                idxer = Indexer(fp_time_limit=self.IndexerPara[i])
+            elif len(self.IndexerPara[i]) == 1:
+                idxer = Indexer(fp_time_limit=self.IndexerPara[i][0])
+            elif len(self.IndexerPara[i]) == 2:
+                idxer = Indexer(fp_time_limit=self.IndexerPara[i][0], maxPath=self.IndexerPara[i][1])
             idxer._silent = silent
             if idxer.use_pre_idx_list is not None:
                 with open(self.fp_name + '_' + idxer.use_pre_idx_list + '-' + str(self.IndexerPara[i]) + '.idx') as f:

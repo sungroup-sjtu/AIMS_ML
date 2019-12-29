@@ -33,7 +33,7 @@ source activate ml
 
 * Calculate fingerprints
 ```
-./gen-fp.py -i ../data/nist-CH-tc.txt -e morgan1-200,topological-500,simple -o fp
+./gen-fp.py -i ../data/nist-CH-tc.txt -e morgan1-200,topological-500-7,simple -o fp
 ```
 * Split data to train/validate datasets using 5-Fold cross-validation
 ```

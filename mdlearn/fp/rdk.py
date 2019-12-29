@@ -143,9 +143,10 @@ class PredefinedMorgan1CountIndexer(PredefinedMorganCountIndexer):
 class TopologicalCountIndexer(Fingerprint):
     name = 'topological'
 
-    def __init__(self, fp_time_limit=200):
+    def __init__(self, fp_time_limit=200, maxPath=7):
         super().__init__()
         self.fp_time_limit = fp_time_limit
+        self.maxPath = maxPath
         self.svg_dir: Path = None
 
     def index(self, smiles):
@@ -165,7 +166,7 @@ class TopologicalCountIndexer(Fingerprint):
 
             rdk_mol = Chem.MolFromSmiles(smiles)
             info = dict()
-            rdkfp: UIntSparseIntVect = Chem.UnfoldedRDKFingerprintCountBased(rdk_mol, maxPath=7)
+            rdkfp: UIntSparseIntVect = Chem.UnfoldedRDKFingerprintCountBased(rdk_mol, maxPath=self.maxPath)
             rdkfp_list.append(rdkfp)
             identifiers += list(rdkfp.GetNonzeroElements().keys())
 
