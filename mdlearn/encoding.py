@@ -54,7 +54,9 @@ class FPEncoder:
                 idxer = Indexer(fp_time_limit=self.IndexerPara[i][0], maxPath=self.IndexerPara[i][1])
             idxer._silent = silent
             if idxer.use_pre_idx_list is not None:
-                with open(self.fp_name + '_' + idxer.use_pre_idx_list + '-' + str(self.IndexerPara[i]) + '.idx') as f:
+                filename = self.fp_name + '_' + idxer.use_pre_idx_list + '-' + \
+                           '-'.join(list(map(str, self.IndexerPara[i]))) + '.idx'
+                with open(filename) as f:
                     idxer.pre_idx_list = f.read().splitlines()
 
             if self.save_svg:
@@ -65,6 +67,8 @@ class FPEncoder:
             fp_filename = self.fp_name + '_' + Indexer.name
             if hasattr(idxer, 'fp_time_limit'):
                 fp_filename += '-' + str(idxer.fp_time_limit)
+            if hasattr(idxer, 'maxPath'):
+                fp_filename += '-' + str(idxer.maxPath)
             if save_fp:
                 with open(fp_filename, 'w') as f_fp:
                     for name, result in zip(self.smiles_list, results_list):
