@@ -21,7 +21,7 @@ class FPEncoder:
                 self.IndexerPara.append(None)
             elif len(encoder.split('-')) == 2:
                 self.Indexers.append(encoders_dict.get(encoder.split('-')[0]))
-                self.IndexerPara.append(int(encoder.split('-')[1]))
+                self.IndexerPara.append([int(encoder.split('-')[1])])
             elif len(encoder.split('-')) == 3:
                 self.Indexers.append(encoders_dict.get(encoder.split('-')[0]))
                 self.IndexerPara.append([int(encoder.split('-')[1]), int(encoder.split('-')[2])])
