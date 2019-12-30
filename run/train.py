@@ -85,7 +85,7 @@ def main():
 
     logger.info('Reading data...')
     datax, datay, data_names = dataloader.load(filename=opt.input, target=opt.target, fps=opt.fp.split(','), featrm=featrm)
-    if opt.logy:
+    if opt.ylog:
         datay = np.log(datay)
 
     # Store fingerprint identifier files
