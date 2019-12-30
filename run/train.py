@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--continuation', default=False, type=bool, help='continue training')
     parser.add_argument('--pca', default=-1, type=int, help='dimension to discard')
     parser.add_argument('--sobol', default=-1, type=int, help='dimensions to reduce according to sensitivity analysis')
+    parser.add_argument('--ylog', default=False, type=bool, help='The target value is log of input')
 
     opt = parser.parse_args()
 
@@ -84,6 +85,8 @@ def main():
 
     logger.info('Reading data...')
     datax, datay, data_names = dataloader.load(filename=opt.input, target=opt.target, fps=opt.fp.split(','), featrm=featrm)
+    if opt.logy:
+        datay = np.log(datay)
 
     # Store fingerprint identifier files
     for fp in opt.fp.split(','):
