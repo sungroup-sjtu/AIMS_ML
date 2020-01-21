@@ -37,7 +37,7 @@ def main():
     else:
         with open(opt.batch, 'r') as f:
             for line in f.readlines():
-                words = line.split(',')
+                words = line.split()[0].split(',')
                 smiles_list.append(words[0])
                 if len(words) >= 2:
                     t_list.append(float(words[1]))
