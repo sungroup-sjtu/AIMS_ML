@@ -1,4 +1,4 @@
-class Fingerprint():
+class Fingerprint:
     def __init__(self):
         self.bit_count = {}
         self.use_pre_idx_list = None
