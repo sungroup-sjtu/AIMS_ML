@@ -12,17 +12,20 @@ from . import Fingerprint
 from .drawmorgan import DrawMorganBit
 
 
-class ECFP4Indexer(Fingerprint):
-    name = 'ecfp4'
+class ECFPIndexer(Fingerprint):
+    name = 'ecfp'
 
-    def __init__(self):
+    def __init__(self, arg=None):
         super().__init__()
-        self.n_bits = 1024
+        if arg is None:
+            arg = [2, 1024]
+        self.radius = arg[0]
+        self.n_bits = arg[1]
 
     def index(self, smiles):
         rdk_mol = Chem.MolFromSmiles(smiles)
         return np.array(
-            list(map(int, Chem.GetMorganFingerprintAsBitVect(rdk_mol, radius=2, nBits=self.n_bits))))
+            list(map(int, Chem.GetMorganFingerprintAsBitVect(rdk_mol, radius=self.radius, nBits=self.n_bits))))
 
     def index_list(self, smiles_list):
         return [self.index(s) for s in smiles_list]
@@ -31,10 +34,12 @@ class ECFP4Indexer(Fingerprint):
 class MorganCountIndexer(Fingerprint):
     name = 'morgan'
 
-    def __init__(self, fp_time_limit=200):
+    def __init__(self, arg=None):
         super().__init__()
-        self.radius = 2
-        self.fp_time_limit = fp_time_limit
+        if arg is None:
+            arg = [2, 200]
+        self.radius = arg[0]
+        self.fp_time_limit = arg[1]
         self.svg_dir: Path = None
 
     def index(self, smiles):
@@ -67,13 +72,15 @@ class MorganCountIndexer(Fingerprint):
                         if radius == 0:
                             id_atoms = [root]
                         else:
-                            id_bonds = Chem.FindAtomEnvironmentOfRadiusN(rdk_mol, radius, root)  # args: mol, radius, atomId
+                            id_bonds = Chem.FindAtomEnvironmentOfRadiusN(rdk_mol, radius,
+                                                                         root)  # args: mol, radius, atomId
                             id_atoms = set()
                             for bid in id_bonds:
                                 id_atoms.add(rdk_mol.GetBondWithIdx(bid).GetBeginAtomIdx())
                                 id_atoms.add(rdk_mol.GetBondWithIdx(bid).GetEndAtomIdx())
                             id_atoms = list(id_atoms)
-                        smi = Chem.MolFragmentToSmiles(rdk_mol, atomsToUse=id_atoms, rootedAtAtom=root, isomericSmiles=False)
+                        smi = Chem.MolFragmentToSmiles(rdk_mol, atomsToUse=id_atoms, rootedAtAtom=root,
+                                                       isomericSmiles=False)
                         fpsmi_dict[idx] = smi
 
         print('\nFilter identifiers...')
@@ -83,7 +90,8 @@ class MorganCountIndexer(Fingerprint):
         for rdkfp in rdkfp_list:
             for idx in rdkfp.GetNonzeroElements().keys():
                 idx_times[idx] += 1
-        self.bit_count = dict([(idx, 0) for idx, times in sorted(idx_times.items(), key=lambda x: x[1], reverse=True) if times >= self.fp_time_limit])
+        self.bit_count = dict([(idx, 0) for idx, times in sorted(idx_times.items(), key=lambda x: x[1], reverse=True) if
+                               times >= self.fp_time_limit])
         print('%i identifiers appears in more than %i molecules saved' % (len(self.idx_list), self.fp_time_limit))
 
         for rdkfp in rdkfp_list:
@@ -105,21 +113,22 @@ class MorganCountIndexer(Fingerprint):
 class Morgan1CountIndexer(MorganCountIndexer):
     name = 'morgan1'
 
-    def __init__(self, fp_time_limit=200):
+    def __init__(self):
         super().__init__()
         self.radius = 1
-        self.fp_time_limit = fp_time_limit
 
 
 class PredefinedMorganCountIndexer(Fingerprint):
     name = 'predefinedmorgan'
 
-    def __init__(self, fp_time_limit=200):
+    def __init__(self, arg=None):
         super().__init__()
-        self.radius = 2
+        if arg is None:
+            arg = [2, 200]
+        self.radius = arg[0]
+        self.fp_time_limit = arg[1]
         self.use_pre_idx_list = 'morgan'
         self.pre_idx_list = []
-        self.fp_time_limit = fp_time_limit
 
     def index(self, smiles):
         rdk_mol = Chem.MolFromSmiles(smiles)
@@ -137,16 +146,18 @@ class PredefinedMorgan1CountIndexer(PredefinedMorganCountIndexer):
         super().__init__()
         self.radius = 1
         self.use_pre_idx_list = 'morgan1'
-        self.fp_time_limit = fp_time_limit
 
 
 class TopologicalCountIndexer(Fingerprint):
     name = 'topological'
 
-    def __init__(self, fp_time_limit=200, maxPath=7):
+    def __init__(self, arg=None):
         super().__init__()
-        self.fp_time_limit = fp_time_limit
-        self.maxPath = maxPath
+        if arg is None:
+            arg = [1, 7, 200]
+        self.minPath = arg[0]
+        self.maxPath = arg[1]
+        self.fp_time_limit = arg[2]
         self.svg_dir: Path = None
 
     def index(self, smiles):
@@ -179,13 +190,15 @@ class TopologicalCountIndexer(Fingerprint):
                         if radius == 0:
                             id_atoms = [root]
                         else:
-                            id_bonds = Chem.FindAtomEnvironmentOfRadiusN(rdk_mol, radius, root)  # args: mol, radius, atomId
+                            id_bonds = Chem.FindAtomEnvironmentOfRadiusN(rdk_mol, radius,
+                                                                         root)  # args: mol, radius, atomId
                             id_atoms = set()
                             for bid in id_bonds:
                                 id_atoms.add(rdk_mol.GetBondWithIdx(bid).GetBeginAtomIdx())
                                 id_atoms.add(rdk_mol.GetBondWithIdx(bid).GetEndAtomIdx())
                             id_atoms = list(id_atoms)
-                        smi = Chem.MolFragmentToSmiles(rdk_mol, atomsToUse=id_atoms, rootedAtAtom=root, isomericSmiles=False)
+                        smi = Chem.MolFragmentToSmiles(rdk_mol, atomsToUse=id_atoms, rootedAtAtom=root,
+                                                       isomericSmiles=False)
                         fpsmi_dict[idx] = smi
 
         print('\nFilter identifiers...')
@@ -195,7 +208,8 @@ class TopologicalCountIndexer(Fingerprint):
         for rdkfp in rdkfp_list:
             for idx in rdkfp.GetNonzeroElements().keys():
                 idx_times[idx] += 1
-        self.bit_count = dict([(idx, 0) for idx, times in sorted(idx_times.items(), key=lambda x: x[1], reverse=True) if times >= self.fp_time_limit])
+        self.bit_count = dict([(idx, 0) for idx, times in sorted(idx_times.items(), key=lambda x: x[1], reverse=True) if
+                               times >= self.fp_time_limit])
         print('%i identifiers appears in more than %i molecules saved' % (len(self.idx_list), self.fp_time_limit))
 
         for rdkfp in rdkfp_list:
@@ -217,11 +231,15 @@ class TopologicalCountIndexer(Fingerprint):
 class PredefinedTopologicalCountIndexer(Fingerprint):
     name = 'predefinedtopological'
 
-    def __init__(self, fp_time_limit=200):
+    def __init__(self, arg=None):
         super().__init__()
+        if arg is None:
+            arg = [1, 7, 200]
+        self.minPath = arg[0]
+        self.maxPath = arg[1]
+        self.fp_time_limit = arg[2]
         self.use_pre_idx_list = 'topological'
         self.pre_idx_list = []
-        self.fp_time_limit = fp_time_limit
 
     def index(self, smiles):
         rdk_mol = Chem.MolFromSmiles(smiles)
