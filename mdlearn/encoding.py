@@ -59,11 +59,8 @@ class FPEncoder:
 
             results_list = idxer.index_list(self.smiles_list)
 
-            fp_filename = self.fp_name + '_' + Indexer.name
-            if hasattr(idxer, 'fp_time_limit'):
-                fp_filename += '-' + str(idxer.fp_time_limit)
-            if hasattr(idxer, 'maxPath'):
-                fp_filename += '-' + str(idxer.maxPath)
+            fp_filename = self.fp_name + '_' + Indexer.name + '-' + '-'.join(list(map(str, self.IndexerPara[i])))
+
             if save_fp:
                 with open(fp_filename, 'w') as f_fp:
                     for name, result in zip(self.smiles_list, results_list):
